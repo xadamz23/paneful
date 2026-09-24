@@ -9,14 +9,11 @@ final class DragMonitor {
     private enum Gesture {
         case none
         /// Pressed; waiting for one of the candidate windows to move or resize.
-        case pending(candidates: [(window: AXUIElement, frame: CGRect)], pressedAt: CGPoint)
+        case pending(candidates: [(window: AXUIElement, frame: CGRect)])
         case moving(AXUIElement, target: (display: Display, zone: ZoneID)?)
         /// `lastFrame` is the window's frame at the previous drag event, so only edges the user moves count.
         case resizing(AXUIElement, lastFrame: CGRect, linked: Bool)
     }
-
-    /// A press that has moved no window after the cursor travels this far is ignored (text selection, file drags).
-    private static let classifyDistance: CGFloat = 24
 
     private let tiling: TilingController
     private let overlay: OverlayController
@@ -68,15 +65,15 @@ final class DragMonitor {
         let candidates = tiling.pressCandidates(at: cursor).compactMap { window in
             WindowAccess.frame(of: window).map { (window: window, frame: $0) }
         }
-        gesture = candidates.isEmpty ? .none : .pending(candidates: candidates, pressedAt: cursor)
+        gesture = candidates.isEmpty ? .none : .pending(candidates: candidates)
     }
 
     private func drag(modifierHeld: Bool) {
         switch gesture {
         case .none:
             break
-        case .pending(let candidates, let pressedAt):
-            classify(candidates, pressedAt: pressedAt, modifierHeld: modifierHeld)
+        case .pending(let candidates):
+            classify(candidates, modifierHeld: modifierHeld)
         case .moving(let window, _):
             updateMove(window, modifierHeld: modifierHeld)
         case .resizing(let window, let lastFrame, let linked):
@@ -88,7 +85,7 @@ final class DragMonitor {
 
     /// Decides what the press is doing from the first candidate whose frame changed:
     /// same size means moving, a new size means resizing.
-    private func classify(_ candidates: [(window: AXUIElement, frame: CGRect)], pressedAt: CGPoint, modifierHeld: Bool) {
+    private func classify(_ candidates: [(window: AXUIElement, frame: CGRect)], modifierHeld: Bool) {
         for candidate in candidates {
             guard let frame = WindowAccess.frame(of: candidate.window), frame != candidate.frame else { continue }
             if WindowAccess.isFullScreen(candidate.window) {
@@ -104,7 +101,6 @@ final class DragMonitor {
             }
             return
         }
-        if hypot(cursor.x - pressedAt.x, cursor.y - pressedAt.y) > Self.classifyDistance { gesture = .none }
     }
 
     private func updateMove(_ window: AXUIElement, modifierHeld: Bool) {
