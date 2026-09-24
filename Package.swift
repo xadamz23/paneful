@@ -4,8 +4,15 @@ import PackageDescription
 let package = Package(
     name: "Paneful",
     platforms: [.macOS(.v14)],
+    products: [.executable(name: "Paneful", targets: ["Paneful"])],
     targets: [
         .target(name: "PanefulCore"),
+        .executableTarget(
+            name: "Paneful",
+            dependencies: ["PanefulCore"],
+            // AppKit callbacks (event monitors, timers) are main-thread but not annotated for Swift 6 isolation.
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
         .testTarget(
             name: "PanefulCoreTests",
             dependencies: ["PanefulCore"],
