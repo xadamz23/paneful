@@ -18,13 +18,25 @@ public struct Settings: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         gap = min(max((try? container.decodeIfPresent(Double.self, forKey: .gap)) ?? 8, 0), 40)
         modifier = (try? container.decodeIfPresent(ModifierKey.self, forKey: .modifier)) ?? .shift
-        layouts = (try? container.decodeIfPresent([String: Layout].self, forKey: .layouts)) ?? [:]
+        // Decode each display's layout on its own, so one bad entry doesn't discard the rest.
+        if let entries = try? container.nestedContainer(keyedBy: DisplayKey.self, forKey: .layouts) {
+            for key in entries.allKeys {
+                if let layout = try? entries.decode(Layout.self, forKey: key) { layouts[key.stringValue] = layout }
+            }
+        }
     }
 
     /// The saved layout for a display, or Halves if none is saved or the saved one is invalid.
     public func layout(forDisplay id: String) -> Layout {
         if let layout = layouts[id], layout.root.isValid { return layout }
         return Presets.halves
+    }
+
+    private struct DisplayKey: CodingKey {
+        let stringValue: String
+        init(stringValue: String) { self.stringValue = stringValue }
+        var intValue: Int? { nil }
+        init?(intValue: Int) { return nil }
     }
 }
 

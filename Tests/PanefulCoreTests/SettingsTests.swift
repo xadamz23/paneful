@@ -75,4 +75,11 @@ import Testing
         settings.layouts["A"] = Layout(name: "Bad", root: .split(.vertical, children: [.zone(0), .zone(1)], fractions: [0.5, 0.2]))
         #expect(settings.layout(forDisplay: "A") == Presets.halves)
     }
+
+    @Test func oneBadLayoutKeepsTheOthers() throws {
+        let thirds = String(decoding: try JSONEncoder().encode(Presets.thirds), as: UTF8.self)
+        let settings = try store(containing: #"{"layouts": {"A": \#(thirds), "B": {"name": "x"}}}"#).load()
+        #expect(settings.layout(forDisplay: "A") == Presets.thirds)
+        #expect(settings.layouts["B"] == nil)
+    }
 }
