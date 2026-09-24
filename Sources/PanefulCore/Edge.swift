@@ -43,12 +43,4 @@ extension Geometry {
             return abs(position - edge.coordinate(of: rect)) > tolerance ? EdgeMove(edge: edge, position: position) : nil
         }
     }
-
-    /// Edges of `frame` that stick out past `rect`, as happens when a window refuses to shrink to its zone.
-    public static func overflowingEdges(of frame: CGRect, beyond rect: CGRect, tolerance: CGFloat = 1) -> [EdgeMove] {
-        movedEdges(from: rect, to: frame, tolerance: tolerance).filter { move in
-            let zoneEdge = move.edge.coordinate(of: rect)
-            return move.edge.isTrailing ? move.position > zoneEdge : move.position < zoneEdge
-        }
-    }
 }

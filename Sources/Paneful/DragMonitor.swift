@@ -11,7 +11,8 @@ final class DragMonitor {
         /// Pressed; waiting for one of the candidate windows to move or resize.
         case pending(candidates: [(window: AXUIElement, frame: CGRect)], pressedAt: CGPoint)
         case moving(AXUIElement, target: (display: Display, zone: ZoneID)?)
-        case resizing(AXUIElement, linked: Bool)
+        /// `lastFrame` is the window's frame at the previous drag event, so only edges the user moves count.
+        case resizing(AXUIElement, lastFrame: CGRect, linked: Bool)
     }
 
     /// A press that has moved no window after the cursor travels this far is ignored (text selection, file drags).
@@ -78,10 +79,10 @@ final class DragMonitor {
             classify(candidates, pressedAt: pressedAt, modifierHeld: modifierHeld)
         case .moving(let window, _):
             updateMove(window, modifierHeld: modifierHeld)
-        case .resizing(let window, let linked):
-            guard let frame = WindowAccess.frame(of: window) else { return }
-            let moved = tiling.followResize(of: window, to: frame)
-            gesture = .resizing(window, linked: linked || moved)
+        case .resizing(let window, let lastFrame, let linked):
+            guard let frame = WindowAccess.frame(of: window), frame != lastFrame else { return }
+            let moved = tiling.followResize(of: window, from: lastFrame, to: frame)
+            gesture = .resizing(window, lastFrame: frame, linked: linked || moved)
         }
     }
 
@@ -96,7 +97,8 @@ final class DragMonitor {
                 gesture = .moving(candidate.window, target: nil)
                 updateMove(candidate.window, modifierHeld: modifierHeld)
             } else if tiling.isTiled(candidate.window) {
-                gesture = .resizing(candidate.window, linked: tiling.followResize(of: candidate.window, to: frame))
+                let linked = tiling.followResize(of: candidate.window, from: candidate.frame, to: frame)
+                gesture = .resizing(candidate.window, lastFrame: frame, linked: linked)
             } else {
                 gesture = .none
             }
@@ -129,7 +131,7 @@ final class DragMonitor {
             }
         case .moving(let window, nil):
             tiling.untile(window)
-        case .resizing(let window, true):
+        case .resizing(let window, _, true):
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [tiling] in
                 tiling.finishResize(of: window)
             }

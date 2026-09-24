@@ -44,6 +44,38 @@ public struct Arrangement<Window: Hashable> {
         return true
     }
 
+    /// Follows one step of a user's resize of a window in `zone`: moves the dividers under the edges that moved
+    /// between `previous` and `frame`. Comparing against the previous frame rather than the zone keeps edges the
+    /// user didn't touch (a window sitting short of its zone, like Terminal's character grid) from moving dividers.
+    /// Returns whether any moved edge sat on a divider.
+    @discardableResult
+    public mutating func followResize(of zone: ZoneID, from previous: CGRect, to frame: CGRect, in displayFrame: CGRect, gap: CGFloat, minSize: CGFloat) -> Bool {
+        var linked = false
+        for move in Geometry.movedEdges(from: previous, to: frame) {
+            if moveEdge(move.edge, of: zone, to: move.position, in: displayFrame, gap: gap, minSize: minSize) { linked = true }
+        }
+        return linked
+    }
+
+    /// Grows `zone` until it's at least `size` along each axis, for a window that refuses to shrink to its zone.
+    /// It moves the divider on the zone's trailing side if there is one, otherwise the one on its leading side,
+    /// so a zone against the screen's right or bottom edge grows back toward its neighbour.
+    /// Returns whether any divider moved.
+    @discardableResult
+    public mutating func fit(_ zone: ZoneID, toAtLeast size: CGSize, in displayFrame: CGRect, gap: CGFloat, minSize: CGFloat) -> Bool {
+        var moved = false
+        for (extent, trailing, leading) in [(size.width, Edge.right, Edge.left), (size.height, Edge.bottom, Edge.top)] {
+            guard let rect = rects(in: displayFrame, gap: gap)[zone] else { return moved }
+            let current = trailing == .right ? rect.width : rect.height
+            guard extent > current + 1 else { continue }
+            if moveEdge(trailing, of: zone, to: leading.coordinate(of: rect) + extent, in: displayFrame, gap: gap, minSize: minSize)
+                || moveEdge(leading, of: zone, to: trailing.coordinate(of: rect) - extent, in: displayFrame, gap: gap, minSize: minSize) {
+                moved = true
+            }
+        }
+        return moved
+    }
+
     /// A fresh arrangement for `saved`, keeping windows whose zones still exist in it.
     public func rebased(on saved: Layout) -> Arrangement {
         var result = Arrangement(saved: saved)

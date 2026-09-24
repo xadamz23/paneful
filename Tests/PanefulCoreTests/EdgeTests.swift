@@ -32,15 +32,6 @@ import Testing
         ])
     }
 
-    @Test func overflowOnlyCountsEdgesPastTheZone() {
-        // Refused to shrink: its right edge sticks out past the zone.
-        let bigger = CGRect(x: 8, y: 39, width: 1808, height: 1311)
-        #expect(Geometry.overflowingEdges(of: bigger, beyond: zone) == [EdgeMove(edge: .right, position: 1816)])
-        // Smaller than its zone (Terminal's character grid) is not an overflow.
-        let smaller = CGRect(x: 8, y: 39, width: 1600, height: 1300)
-        #expect(Geometry.overflowingEdges(of: smaller, beyond: zone).isEmpty)
-    }
-
     @Test func edgeCoordinatesAndAxes() {
         #expect(Edge.left.coordinate(of: zone) == 8)
         #expect(Edge.right.coordinate(of: zone) == 1716)

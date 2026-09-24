@@ -72,41 +72,30 @@ final class TilingController {
         return candidates
     }
 
-    /// Follows a live resize of a tiled window. It moves the dividers under the edges that moved and refits the
-    /// other windows whose zones changed; the resized window itself is left to the user's drag.
-    /// Returns whether any divider was involved.
+    /// Follows one step of a live resize of a tiled window, from its `previous` frame to `frame`. It moves the
+    /// dividers under the edges that moved and refits the other windows whose zones changed; the resized window
+    /// itself is left to the user's drag. Returns whether any divider was involved.
     @discardableResult
-    func followResize(of window: AXUIElement, to frame: CGRect) -> Bool {
+    func followResize(of window: AXUIElement, from previous: CGRect, to frame: CGRect) -> Bool {
         guard let (display, zone) = location(of: window), var arrangement = arrangements[display.id] else { return false }
         let before = arrangement.rects(in: display.visibleFrame, gap: gap)
-        guard let rect = before[zone] else { return false }
-        var linked = false
-        for move in Geometry.movedEdges(from: rect, to: frame) {
-            if arrangement.moveEdge(move.edge, of: zone, to: move.position, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) {
-                linked = true
-            }
-        }
-        guard linked else { return false }
+        guard arrangement.followResize(of: zone, from: previous, to: frame, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) else { return false }
         arrangements[display.id] = arrangement
         refit(display, changedFrom: before, except: window)
         return true
     }
 
-    /// Ends a linked resize: snaps every tiled window on the display to its zone, then lets any window that
-    /// refused to shrink (a minimum size) push its divider back so nothing overlaps.
+    /// Ends a linked resize: snaps every tiled window on the display to its zone, then grows the zones of windows
+    /// that refused to shrink (a minimum size) until they fit, so nothing overlaps or hangs off the screen.
     func finishResize(of window: AXUIElement) {
         guard let (display, _) = location(of: window) else { return }
         refit(display)
         guard var arrangement = arrangements[display.id] else { return }
-        let rects = arrangement.rects(in: display.visibleFrame, gap: gap)
         var moved = false
         for tiled in arrangement.tiledWindows {
-            guard let zone = arrangement.zone(of: tiled), let rect = rects[zone],
-                  let actual = WindowAccess.frame(of: tiled) else { continue }
-            for move in Geometry.overflowingEdges(of: actual, beyond: rect) {
-                if arrangement.moveEdge(move.edge, of: zone, to: move.position, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) {
-                    moved = true
-                }
+            guard let zone = arrangement.zone(of: tiled), let actual = WindowAccess.frame(of: tiled) else { continue }
+            if arrangement.fit(zone, toAtLeast: actual.size, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) {
+                moved = true
             }
         }
         guard moved else { return }
