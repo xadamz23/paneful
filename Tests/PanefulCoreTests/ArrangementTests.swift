@@ -63,4 +63,23 @@ import Testing
         let frame = CGRect(x: 0, y: 0, width: 1000, height: 800)
         #expect(arrangement.rects(in: frame, gap: 8) == Geometry.zoneRects(Presets.grid2x2.root, in: frame, gap: 8))
     }
+
+    @Test func moveEdgeChangesWorkingButNeverSaved() {
+        var arrangement = Arrangement<String>(saved: Presets.halves)
+        let frame = CGRect(x: 0, y: 31, width: 3440, height: 1327)
+        let moved = arrangement.moveEdge(.right, of: 0, to: 2000, in: frame, gap: 8, minSize: 100)
+        #expect(moved)
+        #expect(arrangement.rects(in: frame, gap: 8)[0]!.maxX == 2000)
+        #expect(arrangement.saved == Presets.halves)
+        arrangement.reset()
+        #expect(arrangement.working == Presets.halves.root)
+    }
+
+    @Test func moveOuterEdgeChangesNothing() {
+        var arrangement = Arrangement<String>(saved: Presets.halves)
+        let frame = CGRect(x: 0, y: 31, width: 3440, height: 1327)
+        let moved = arrangement.moveEdge(.left, of: 0, to: 300, in: frame, gap: 8, minSize: 100)
+        #expect(!moved)
+        #expect(arrangement.working == Presets.halves.root)
+    }
 }

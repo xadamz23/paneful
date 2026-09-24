@@ -35,6 +35,15 @@ public struct Arrangement<Window: Hashable> {
         working = saved.root
     }
 
+    /// Moves the divider under `edge` of `zone` (see `Node.movingEdge`). Only the working tree changes.
+    /// Returns false if that edge has no divider.
+    @discardableResult
+    public mutating func moveEdge(_ edge: Edge, of zone: ZoneID, to position: CGFloat, in frame: CGRect, gap: CGFloat, minSize: CGFloat) -> Bool {
+        guard let moved = working.movingEdge(edge, of: zone, to: position, in: frame, gap: gap, minSize: minSize) else { return false }
+        working = moved
+        return true
+    }
+
     /// A fresh arrangement for `saved`, keeping windows whose zones still exist in it.
     public func rebased(on saved: Layout) -> Arrangement {
         var result = Arrangement(saved: saved)
