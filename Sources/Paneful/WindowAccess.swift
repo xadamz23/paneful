@@ -13,6 +13,11 @@ enum WindowAccess {
         _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
     }
 
+    /// Caps every Accessibility call, so a hung app can stall Paneful for at most a quarter second.
+    static func configureTimeout() {
+        AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.25)
+    }
+
     /// The standard window under a point (Accessibility coordinates), excluding Paneful's own windows.
     static func window(at point: CGPoint) -> AXUIElement? {
         var element: AXUIElement?
@@ -68,6 +73,17 @@ enum WindowAccess {
 
     static func isFullScreen(_ window: AXUIElement) -> Bool {
         attribute(window, "AXFullScreen") as? Bool ?? false
+    }
+
+    static func isMinimized(_ window: AXUIElement) -> Bool {
+        attribute(window, kAXMinimizedAttribute) as? Bool ?? false
+    }
+
+    /// True once the window's app has quit. Its elements then fail with .cannotComplete rather than .invalidUIElement.
+    static func isGone(_ window: AXUIElement) -> Bool {
+        var pid: pid_t = 0
+        guard AXUIElementGetPid(window, &pid) == .success else { return true }
+        return NSRunningApplication(processIdentifier: pid)?.isTerminated ?? true
     }
 
     private static func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
