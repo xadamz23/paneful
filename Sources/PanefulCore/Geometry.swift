@@ -9,9 +9,15 @@ public enum Geometry {
         return rects
     }
 
-    /// The zone under `point`. Each zone's rect is grown by half the gap, so a point in a gap belongs to the nearer zone.
+    /// The zone under `point`. Each zone's rect is grown by half the gap, so a point in a gap belongs to the nearer
+    /// zone, and a point beyond the outermost zones (screen edge, menu bar, Dock) is pulled in to the nearest one.
     public static func zone(at point: CGPoint, in rects: [ZoneID: CGRect], gap: CGFloat) -> ZoneID? {
-        rects.first { $0.value.insetBy(dx: -gap / 2, dy: -gap / 2).contains(point) }?.key
+        guard let bounds = rects.values.reduce(CGRect?.none, { $0?.union($1) ?? $1 }) else { return nil }
+        // Keep the point inside the half-open bounds so the last row and column still contain it.
+        let clamped = CGPoint(
+            x: min(max(point.x, bounds.minX), bounds.maxX - 1),
+            y: min(max(point.y, bounds.minY), bounds.maxY - 1))
+        return rects.first { $0.value.insetBy(dx: -gap / 2, dy: -gap / 2).contains(clamped) }?.key
     }
 
     private static func place(_ node: Node, in rect: CGRect, gap: CGFloat, into rects: inout [ZoneID: CGRect]) {

@@ -56,8 +56,19 @@ import Testing
         let rects = Geometry.zoneRects(Presets.halves.root, in: ultrawide, gap: 8)
         #expect(Geometry.zone(at: CGPoint(x: 1719, y: 500), in: rects, gap: 8) == 0)
         #expect(Geometry.zone(at: CGPoint(x: 1720, y: 500), in: rects, gap: 8) == 1)
-        // Outer gap: within half a gap of zone 0's left edge (x = 8) counts, further out does not.
         #expect(Geometry.zone(at: CGPoint(x: 4, y: 500), in: rects, gap: 8) == 0)
-        #expect(Geometry.zone(at: CGPoint(x: 3, y: 500), in: rects, gap: 8) == nil)
+    }
+
+    @Test func pointAtScreenEdgePicksEdgeZone() {
+        // The cursor stops at the display's edge, and can sit over the menu bar or Dock, outside every zone.
+        let rects = Geometry.zoneRects(Presets.halves.root, in: ultrawide, gap: 8)
+        #expect(Geometry.zone(at: CGPoint(x: 0, y: 500), in: rects, gap: 8) == 0)
+        #expect(Geometry.zone(at: CGPoint(x: 3439, y: 500), in: rects, gap: 8) == 1)
+        #expect(Geometry.zone(at: CGPoint(x: 1000, y: 0), in: rects, gap: 8) == 0)
+        #expect(Geometry.zone(at: CGPoint(x: 3000, y: 1439), in: rects, gap: 8) == 1)
+    }
+
+    @Test func noZonesMeansNoHit() {
+        #expect(Geometry.zone(at: CGPoint(x: 10, y: 10), in: [:], gap: 8) == nil)
     }
 }
