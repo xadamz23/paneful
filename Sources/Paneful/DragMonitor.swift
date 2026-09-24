@@ -1,17 +1,26 @@
 import AppKit
 import PanefulCore
 
-/// Watches global mouse events. Holding the modifier while dragging a window shows its display's zones;
-/// releasing over a zone snaps the window there. A drag that ends anywhere else untiles the window.
+/// Watches global mouse events and turns each press into one gesture:
+/// - moving a window: holding the modifier shows its display's zones. Releasing over one snaps the window there;
+///   releasing anywhere else untiles it.
+/// - resizing a tiled window: the dividers under the dragged edges follow live, resizing the neighbouring windows.
 final class DragMonitor {
+    private enum Gesture {
+        case none
+        /// Pressed; waiting for one of the candidate windows to move or resize.
+        case pending(candidates: [(window: AXUIElement, frame: CGRect)], pressedAt: CGPoint)
+        case moving(AXUIElement, target: (display: Display, zone: ZoneID)?)
+        case resizing(AXUIElement, linked: Bool)
+    }
+
+    /// A press that has moved no window after the cursor travels this far is ignored (text selection, file drags).
+    private static let classifyDistance: CGFloat = 24
+
     private let tiling: TilingController
     private let overlay: OverlayController
     private var monitor: Any?
-
-    private var window: AXUIElement?
-    private var startFrame: CGRect?
-    private var isMoving = false
-    private var target: (display: Display, zone: ZoneID)?
+    private var gesture = Gesture.none
 
     init(tiling: TilingController, overlay: OverlayController) {
         self.tiling = tiling
@@ -28,7 +37,8 @@ final class DragMonitor {
     func stop() {
         if let monitor { NSEvent.removeMonitor(monitor) }
         monitor = nil
-        endDrag()
+        gesture = .none
+        overlay.hide()
     }
 
     private var cursor: CGPoint {
@@ -36,62 +46,96 @@ final class DragMonitor {
     }
 
     private func handle(_ event: NSEvent) {
+        let modifierHeld = event.modifierFlags.contains(tiling.settings.modifier.flags)
         switch event.type {
         case .leftMouseDown:
-            window = WindowAccess.window(at: cursor)
-            startFrame = window.flatMap(WindowAccess.frame(of:))
-            isMoving = false
-        case .leftMouseDragged, .flagsChanged:
-            update(modifierHeld: event.modifierFlags.contains(tiling.settings.modifier.flags))
+            press()
+        case .leftMouseDragged:
+            drag(modifierHeld: modifierHeld)
+        case .flagsChanged:
+            if case .moving(let window, _) = gesture { updateMove(window, modifierHeld: modifierHeld) }
         case .leftMouseUp:
-            finishDrag()
+            release()
         default:
             break
         }
     }
 
-    private func update(modifierHeld: Bool) {
-        guard let window, let startFrame else { return }
-        if !isMoving {
-            guard let frame = WindowAccess.frame(of: window) else { return }
-            if frame.size != startFrame.size {
-                // Resizing, not moving: stop tracking this drag.
-                endDrag()
-                return
-            }
-            isMoving = frame.origin != startFrame.origin
-            guard isMoving else { return }
+    private func press() {
+        // A mouse-up swallowed by Mission Control or a Space switch must not leave the last gesture behind.
+        overlay.hide()
+        let candidates = tiling.pressCandidates(at: cursor).compactMap { window in
+            WindowAccess.frame(of: window).map { (window: window, frame: $0) }
         }
-        guard modifierHeld, !WindowAccess.isFullScreen(window), let display = tiling.display(containing: cursor) else {
-            target = nil
+        gesture = candidates.isEmpty ? .none : .pending(candidates: candidates, pressedAt: cursor)
+    }
+
+    private func drag(modifierHeld: Bool) {
+        switch gesture {
+        case .none:
+            break
+        case .pending(let candidates, let pressedAt):
+            classify(candidates, pressedAt: pressedAt, modifierHeld: modifierHeld)
+        case .moving(let window, _):
+            updateMove(window, modifierHeld: modifierHeld)
+        case .resizing(let window, let linked):
+            guard let frame = WindowAccess.frame(of: window) else { return }
+            let moved = tiling.followResize(of: window, to: frame)
+            gesture = .resizing(window, linked: linked || moved)
+        }
+    }
+
+    /// Decides what the press is doing from the first candidate whose frame changed:
+    /// same size means moving, a new size means resizing.
+    private func classify(_ candidates: [(window: AXUIElement, frame: CGRect)], pressedAt: CGPoint, modifierHeld: Bool) {
+        for candidate in candidates {
+            guard let frame = WindowAccess.frame(of: candidate.window), frame != candidate.frame else { continue }
+            if WindowAccess.isFullScreen(candidate.window) {
+                gesture = .none
+            } else if frame.size == candidate.frame.size {
+                gesture = .moving(candidate.window, target: nil)
+                updateMove(candidate.window, modifierHeld: modifierHeld)
+            } else if tiling.isTiled(candidate.window) {
+                gesture = .resizing(candidate.window, linked: tiling.followResize(of: candidate.window, to: frame))
+            } else {
+                gesture = .none
+            }
+            return
+        }
+        if hypot(cursor.x - pressedAt.x, cursor.y - pressedAt.y) > Self.classifyDistance { gesture = .none }
+    }
+
+    private func updateMove(_ window: AXUIElement, modifierHeld: Bool) {
+        guard modifierHeld, let display = tiling.display(containing: cursor) else {
+            gesture = .moving(window, target: nil)
             overlay.hide()
             return
         }
         let rects = tiling.zoneRects(for: display)
         let zone = Geometry.zone(at: cursor, in: rects, gap: tiling.gap)
-        target = zone.map { (display, $0) }
+        gesture = .moving(window, target: zone.map { (display, $0) })
         overlay.show(on: display, rects: rects, highlighted: zone)
     }
 
-    private func finishDrag() {
-        defer { endDrag() }
-        guard let window, isMoving else { return }
-        if let target {
-            // Let the window server finish the drag before resizing, or it can overwrite our frame.
+    private func release() {
+        let finished = gesture
+        gesture = .none
+        overlay.hide()
+        // Let the window server and the app finish the drag first, or they can overwrite our frames.
+        switch finished {
+        case .moving(let window, let target?):
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [tiling] in
                 tiling.snap(window, to: target.zone, on: target.display)
             }
-        } else {
+        case .moving(let window, nil):
             tiling.untile(window)
+        case .resizing(let window, true):
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [tiling] in
+                tiling.finishResize(of: window)
+            }
+        default:
+            break
         }
-    }
-
-    private func endDrag() {
-        window = nil
-        startFrame = nil
-        isMoving = false
-        target = nil
-        overlay.hide()
     }
 }
 
