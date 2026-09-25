@@ -5,6 +5,7 @@ import ServiceManagement
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let tiling = TilingController(store: SettingsStore(url: SettingsStore.defaultURL))
     private lazy var dragMonitor = DragMonitor(tiling: tiling, overlay: OverlayController())
+    private lazy var editor = EditorWindowController(tiling: tiling)
     private var statusItem: NSStatusItem!
     private var trustTimer: Timer?
     private var wasTrusted: Bool?
@@ -54,9 +55,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let header = NSMenuItem(title: "Layouts", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
+        menu.addItem(item("Edit Layouts…", #selector(openEditor)))
         for display in tiling.displays {
             let current = tiling.settings.layout(forDisplay: display.id)
             let submenu = NSMenu()
+            if !Presets.all.contains(current) {
+                // An edited layout: shown ticked above the presets, which would replace it.
+                let custom = NSMenuItem(title: current.name, action: nil, keyEquivalent: "")
+                custom.state = .on
+                submenu.addItem(custom)
+                submenu.addItem(.separator())
+            }
             for preset in Presets.all {
                 let choice = item(preset.name, #selector(chooseLayout(_:)))
                 choice.representedObject = LayoutChoice(displayID: display.id, layout: preset)
@@ -136,6 +145,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } catch {
             NSLog("Paneful: launch at login failed: \(error)")
         }
+    }
+
+    @objc private func openEditor() {
+        editor.show()
     }
 
     @objc private func quit() {
