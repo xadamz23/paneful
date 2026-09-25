@@ -1,7 +1,7 @@
 import CoreGraphics
 
-/// One display's live state: a working copy of the saved layout (which linked resizing will adjust
-/// in Phase 2) plus which windows sit in which zone. The saved layout itself is never changed here.
+/// One display's live state: a working copy of the saved layout (which linked resizing adjusts)
+/// plus which windows sit in which zone. The saved layout itself is never changed here.
 public struct Arrangement<Window: Hashable> {
     public let saved: Layout
     public private(set) var working: Node

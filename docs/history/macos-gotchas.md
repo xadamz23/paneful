@@ -9,6 +9,7 @@ Lessons that aren't specific to Paneful's features. Read this before touching wi
 - **Some apps ignore a resize that comes straight after a move (Ghostty).** Use the order **size → position → size**, the same as Rectangle.
 - **Setters report success even when they did nothing.** Always read the frame back when checking behaviour.
 - **A dragged window's position is reported late.** During a title-bar drag, the Accessibility position lagged about 37 mouse events behind the visible window. Never give up early on "has this window moved?".
+- **Don't move a window the user is still dragging.** Changing its frame mid-drag fights the window server. Act on mouse-up, after a short delay so the drag finishes first (`DragMonitor` waits 50 ms).
 - **Position and size are two separate reads, so they can be torn.** During a live left-edge or top-edge resize the opposite edge seems to wobble. Decide which edge is being dragged once, and follow only that edge (`ResizeTracker`).
 - **Frames are whole points.** Compare consecutive frames with a tolerance below 1, or slow 1 pt drags get lost.
 - **`AXEnhancedUserInterface`** makes some apps (Chrome, Electron) animate or misplace resizes. Turn it off around the resize and restore it afterwards.

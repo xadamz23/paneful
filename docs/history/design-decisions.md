@@ -14,6 +14,8 @@ The choices that shape Paneful, and why we made them. The full design is in the 
 | **One gap for both between zones and screen edges** | A single setting, 0–40 pt, default 8. Adam uses 4. |
 | **A layout per display** | Three displays: the ultrawide in the middle, and a PA248QV on each side. |
 | **A visual editor, presets you can tweak, and nothing applied until Save** | The editor is only a preview until you click Save. Edited layouts are named "Custom". |
+| **A window dragged out of its zone gets back its pre-snap size** | It's restored when you let go, not mid-drag. The top edge stays where you dropped it, and the spot you grabbed stays under the cursor. Moving a window between zones keeps its original size. |
+| **An ultrawide preset whose middle is exactly 1440 pt** | "Thirds · 1440 middle" is offered only on displays at least twice as wide as tall. Its fractions are computed for the display and gap when it's offered. |
 
 ## Architecture decisions
 
@@ -28,6 +30,7 @@ The choices that shape Paneful, and why we made them. The full design is in the 
   - This split is what let most bugs be pinned down with a failing test.
 - **One unit talks to the Accessibility API** (`WindowAccess`). Every Accessibility quirk we found is handled in one place.
 - **Windows are matched to zones by ID**, through `Arrangement<AXUIElement>`. That's why zone IDs must never be reused (issue 14).
+- **Presets are static fractions, with one exception.** `Presets.available(for:gap:)` adds the computed ultrawide preset, so the menu and the editor both list presets through it rather than `Presets.all`.
 - **Settings are forgiving.** A missing, corrupt, partial or out-of-range settings file falls back field by field. A single bad saved layout no longer resets the others. An invalid layout falls back to Halves.
 
 ## Deliberate deviations from the spec
@@ -41,6 +44,8 @@ The choices that shape Paneful, and why we made them. The full design is in the 
 | Presets "Thirds" and "3 columns" | One preset, "Thirds" | They were the same layout. |
 | Create the certificate in Keychain Access | `scripts/make-signing-cert.sh` | Less error-prone than clicking through Keychain Access. |
 | Gap slider only in the editor | Also a Gap ▸ menu from Phase 1 | The gap needed to be settable before the editor existed. |
+| A Layout ▸ preset submenu only until the editor exists | A preset submenu per display, kept alongside Edit Layouts… | A layout change is one click away, without opening the editor. |
+| Release without the modifier → no-op | A tiled window dragged without the modifier is untiled, and its pre-snap size restored | Dragging a window out of its zone should give back the size it had before you tiled it. |
 | SwiftUI editor | SwiftUI without `@State`, `@Observable` or `#Preview` | The SwiftUI macros need Xcode. All view state lives in `EditorModel`. |
 
 ## Tooling decisions

@@ -41,7 +41,7 @@ Adam chose:
 
 ## Where it stands
 
-- All three spec phases are done and merged to `main`. There are 102 unit tests, all passing.
+- All three spec phases are done and merged to `main`, plus two follow-ups: the ultrawide preset and restoring a window's size on drag-out. There are 102 unit tests, all passing.
 - It's installed at `/Applications/Paneful.app`, signed with a self-signed "Paneful Dev" certificate.
 - Settings live in `~/Library/Application Support/Paneful/settings.json`.
 - macOS's own window tiling is turned off (System Settings › Desktop & Dock), because it conflicts with Paneful.
@@ -59,15 +59,17 @@ scripts/make-signing-cert.sh   # one-time: creates the "Paneful Dev" signing ide
 ### Code map
 
 - `Sources/PanefulCore/`: pure, unit-tested logic.
-  - `Layout.swift`, `Presets.swift`: the split-tree layout model.
-  - `Geometry.swift`, `Coordinates.swift`: zone rectangles with the gap, and coordinate flips.
+  - `Layout.swift`: the split-tree layout model.
+  - `Presets.swift`: the fixed presets, plus the ultrawide one computed per display and gap (`Presets.available(for:gap:)`).
+  - `Geometry.swift`: zone rectangles with the gap, hit-testing a point to a zone, and where a dragged-out window lands (`restoredFrame`).
+  - `Coordinates.swift`: flips between AppKit and Accessibility coordinates.
   - `Arrangement.swift`: each display's working copy of its layout, plus which windows are tiled where.
   - `Dividers.swift`, `Edge.swift`, `ResizeTracker.swift`: linked resizing.
   - `LayoutEditing.swift`, `LayoutDraft.swift`, `DividerDrag.swift`: the editor.
   - `Settings.swift`: persistence.
 - `Sources/Paneful/`: the AppKit and SwiftUI app.
   - `WindowAccess.swift`: the only code that talks to the Accessibility API.
-  - `TilingController.swift`: owns settings and arrangements, and snaps, refits and follows resizes.
+  - `TilingController.swift`: owns settings and arrangements, and snaps, refits and follows resizes. It also gives windows dragged out of their zone back their pre-snap size.
   - `DragMonitor.swift`: turns mouse presses into moves or resizes.
   - `OverlayController.swift`, `AppDelegate.swift`: the zone overlay and the menu.
   - `Editor*.swift`: the layout editor window.
@@ -100,6 +102,11 @@ These are accepted for now, and none are blockers:
 - **Small behaviour gaps:**
   - When two windows refuse to shrink onto the same divider, which one wins is arbitrary.
   - Choosing a preset moves tiled windows by zone number, so the window in zone 1 goes to the new zone 1.
+  - **"Thirds · 1440 middle" is exact only at the gap it was picked with.** After a gap change:
+    - the middle drifts a few points until you pick the preset again;
+    - the saved fractions no longer match the ones the Layout menu computes, so the menu shows the layout ticked above the presets, as it does for a Custom layout.
+  - **Pre-snap sizes are kept only while Paneful runs.** After a relaunch, dragging a window out leaves it at its zone size.
+  - A window that's closed, minimised or untiled by a refit keeps its remembered size (`sizesBeforeSnap`) until Paneful quits. It's a tiny leak, and harmless.
 - **Editor polish:**
   - The prompt says "layout" when only the gap changed.
   - "px" is really points.
