@@ -37,10 +37,11 @@ Adam chose:
 | 2026-09-24 → 25 | Phase 2: linked resizing | Divider maths, drag classification, live following of the neighbour. Manual testing found five real bugs, from delayed Accessibility updates to macOS refusing resizes. All fixed. Merged. |
 | 2026-09-25 | Phase 3: visual editor | Split, remove and divider-drag logic, the Edit Layouts window, and "Custom" layouts. The review plus Adam's testing found zone-ID reuse and tied dividers. Fixed. Merged. |
 | 2026-09-25 | Ultrawide preset | Added "Thirds · 1440 middle", offered only on displays at least twice as wide as tall. Its proportions are calculated for the display and gap when you pick it, so the middle is exactly 1440 px: 992 \| 1440 \| 992 on the Sceptre at a 4 pt gap. If the gap changes later, the middle drifts a few pixels until you pick the preset again. (`ce47bca`) |
+| 2026-09-25 | Restore size on drag-out | A tiled window dragged out of its zone gets back the size it had before it was first snapped. Moving it between zones keeps that original size. The restore happens when you let go, not during the drag, because moving a window mid-drag fights the window server. `Geometry.restoredFrame` keeps the top edge where you dropped it, keeps the grabbed spot under the cursor, and keeps the window on the display. Sizes are remembered only while Paneful runs. (`f55190f`) |
 
 ## Where it stands
 
-- All three spec phases are done and merged to `main`. There are 96 unit tests, all passing.
+- All three spec phases are done and merged to `main`. There are 102 unit tests, all passing.
 - It's installed at `/Applications/Paneful.app`, signed with a self-signed "Paneful Dev" certificate.
 - Settings live in `~/Library/Application Support/Paneful/settings.json`.
 - macOS's own window tiling is turned off (System Settings › Desktop & Dock), because it conflicts with Paneful.
