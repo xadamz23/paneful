@@ -61,7 +61,7 @@ New logic lives in `PanefulCore` and is written test-first. The app changes are 
 | `TilingController` | `moveFocusedWindow(toward:)` and `fillZones()`, both through the existing `snap(_:to:on:)`. The untiled first press uses `Geometry.zone(at:in:gap:)`. |
 | `AppDelegate` | Starts and stops `HotKeys` next to `DragMonitor` in `updateTrust`. Adds the Fill Zones item. |
 
-**Current Space only.** Accessibility's window list appears to cover only the current Space. The probe on 2026-09-25 matched every standard window to an on-screen window. If a check with a window on another Space shows otherwise, `visibleWindows()` also drops windows that `CGWindowListCopyWindowInfo(.optionOnScreenOnly)` doesn't list, matched by pid and frame.
+**Current Space only.** Accessibility's window list (`kAXWindowsAttribute`) covers only the current Space. A probe on 2026-09-25 confirmed it: an Edge window on another Space was missing from Edge's list. So `visibleWindows()` needs no on-screen filter.
 
 ## Verification
 - **`swift test`:** all existing tests, plus:
