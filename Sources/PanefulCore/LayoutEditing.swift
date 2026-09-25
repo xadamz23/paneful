@@ -24,6 +24,18 @@ extension Node {
         }
     }
 
+    /// The divider under `point`, as the zone before it and that zone's edge (`.right` or `.bottom`). A divider's
+    /// handle is the gap beside the zone, widened by `tolerance` either side, since a gap can be too thin to hit.
+    public func dividerHandle(at point: CGPoint, in frame: CGRect, gap: CGFloat, tolerance: CGFloat) -> (zone: ZoneID, edge: Edge)? {
+        for (zone, rect) in Geometry.zoneRects(self, in: frame, gap: gap).sorted(by: { $0.key < $1.key }) {
+            let right = CGRect(x: rect.maxX - tolerance, y: rect.minY, width: gap + 2 * tolerance, height: rect.height)
+            if right.contains(point), divider(for: .right, of: zone) != nil { return (zone, .right) }
+            let bottom = CGRect(x: rect.minX, y: rect.maxY - tolerance, width: rect.width, height: gap + 2 * tolerance)
+            if bottom.contains(point), divider(for: .bottom, of: zone) != nil { return (zone, .bottom) }
+        }
+        return nil
+    }
+
     private func replacingZone(_ zone: ZoneID, with replacement: Node) -> Node {
         switch self {
         case .zone(let id):

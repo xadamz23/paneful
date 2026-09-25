@@ -77,4 +77,32 @@ import Testing
         #expect(Set(node.zoneIDs).count == node.zoneIDs.count)
         #expect(node.zoneIDs.sorted() == [0, 2, 4, 5])
     }
+
+    @Test func handleInTheGapBetweenHalves() {
+        // Zone 0 ends at x = 1716 and zone 1 starts at 1724.
+        let handle = Presets.halves.root.dividerHandle(at: CGPoint(x: 1720, y: 500), in: ultrawide, gap: 8, tolerance: 2)
+        #expect(handle?.zone == 0)
+        #expect(handle?.edge == .right)
+    }
+
+    @Test func noHandleInsideAZone() {
+        #expect(Presets.halves.root.dividerHandle(at: CGPoint(x: 1000, y: 500), in: ultrawide, gap: 8, tolerance: 2) == nil)
+    }
+
+    @Test func noHandleOnAnOuterEdge() {
+        #expect(Presets.halves.root.dividerHandle(at: CGPoint(x: 3436, y: 500), in: ultrawide, gap: 8, tolerance: 2) == nil)
+    }
+
+    @Test func bottomHandleInALeftColumn() {
+        // 2 × 2: zone 0 is (8, 39, 1708, 652), so the left column's row gap is y 691...699.
+        let handle = Presets.grid2x2.root.dividerHandle(at: CGPoint(x: 500, y: 695), in: ultrawide, gap: 8, tolerance: 2)
+        #expect(handle?.zone == 0)
+        #expect(handle?.edge == .bottom)
+    }
+
+    @Test func toleranceWidensThinGaps() {
+        // With no gap, zones 0 and 1 meet at x = 1720; only the tolerance makes that line grabbable.
+        #expect(Presets.halves.root.dividerHandle(at: CGPoint(x: 1719, y: 500), in: ultrawide, gap: 0, tolerance: 3)?.zone == 0)
+        #expect(Presets.halves.root.dividerHandle(at: CGPoint(x: 1719, y: 500), in: ultrawide, gap: 0, tolerance: 0) == nil)
+    }
 }
