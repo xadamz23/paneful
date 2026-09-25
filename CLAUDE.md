@@ -53,6 +53,7 @@ The ideas that span several files:
 - **`DragMonitor`** uses a global `NSEvent` monitor. It turns each press into a gesture: `pending` becomes `moving` (the modifier shows the overlay and release snaps; holding the span key too stretches the target from an anchor zone) or `resizing` (a tiled window's edge drag, where dividers follow live).
   - It classifies by watching candidate windows' frames change, and must keep watching until mouse-up: a dragged window's position is reported about 37 events late.
   - `ResizeTracker` locks one dragged edge per axis, because torn position/size reads make the opposite edge appear to move.
+- **Keyboard moves and Fill Zones** both end in `TilingController.snap`, so they behave like a drop. `HotKeys` (Carbon) sends Ctrl+Option + arrows to `moveFocusedWindow(toward:)`, which uses `Geometry.neighbour` on the window's own display only. `fillZones()` pairs untiled `WindowAccess.visibleWindows()` with empty zones through `Geometry.fill`.
 - **The editor** consists of `EditorModel`, `EditorView` (with `LayoutCanvas`) and `EditorWindowController`. The pure pieces are in core: `LayoutDraft`, `Node.splitting` and `removing`, `dividerHandle`, and `DividerDrag`. Nothing reaches the screen until Save, which calls `setLayout` and then `setGap`.
 - **Presets** are static fractions. The exception is `Presets.available(for:gap:)`, which adds a computed "Thirds · 1440 middle" preset on ultrawides (at least twice as wide as tall). The menu and the editor must list presets through `available`, not `Presets.all`.
 

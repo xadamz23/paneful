@@ -6,7 +6,7 @@ The choices that shape Paneful, and why we made them. The full design is in the 
 
 | Decision | Why |
 |---|---|
-| **Zone layouts, not keyboard shortcuts or drag-to-edge** | BentoBox is what Adam uses. Shortcuts and edge-snapping were left out of v1. |
+| **Zone layouts, not keyboard shortcuts or drag-to-edge** | BentoBox is what Adam uses. Edge-snapping was left out; keyboard moves came later (Ctrl+Option + arrows). |
 | **Linked resizing, using zone-snapped windows only** | Only windows dropped into zones are linked. It's predictable, and it never grabs a window you didn't mean to move. |
 | **Saved layouts never change when you resize** | Resizing adjusts a per-display *working copy*. Reset Arrangement, or plugging a display in or out, goes back to the saved layout. |
 | **A dropped window fills the zone's *current* slot** | After you've resized, a new window fits the adjusted space, with no overlap. |
@@ -18,6 +18,8 @@ The choices that shape Paneful, and why we made them. The full design is in the 
 | **An ultrawide preset whose middle is exactly 1440 pt** | "Thirds · 1440 middle" is offered only on displays at least twice as wide as tall. Its fractions are computed for the display and gap when it's offered. |
 | **Span zones with a second key, as a block of whole zones** | Shift+Option-drag covers the anchor zone and the one under the cursor, never half a zone. A span is only where the window sits: the saved layout doesn't change, and a span whose zone is removed untiles its window. |
 | **A display with no tiled windows goes back to its saved layout** | Once its last window is dragged out, moved to another display, closed or minimised, the next window lands in a saved-size zone without a Reset. Moving the only window to another zone on the same display keeps the adjusted sizes, because the zones never become empty. |
+| **Keyboard moves with Ctrl+Option + arrows, within one display** | Moving a window one zone over shouldn't need the mouse. Keys are spatial (the zone physically left, right, above or below), stop at the display's edge rather than wrapping or changing display, and a span moves into the single zone past its edge. The keys are fixed, not a setting. |
+| **Fill Zones fills empty zones only, nearest first** | After a reboot or reconnect, one click tiles the untiled windows with the least movement. Tiled windows and leftover windows are left alone, so nothing is rearranged unexpectedly. |
 
 ## Architecture decisions
 
@@ -31,6 +33,7 @@ The choices that shape Paneful, and why we made them. The full design is in the 
   - The app target, `Paneful`, only talks to macOS, and is checked by hand.
   - This split is what let most bugs be pinned down with a failing test.
 - **One unit talks to the Accessibility API** (`WindowAccess`). Every Accessibility quirk we found is handled in one place.
+- **Hotkeys use Carbon `RegisterEventHotKey`**, not an `NSEvent` key monitor or an event tap: no extra permission, and the keystroke is swallowed so apps never see it.
 - **Windows are matched to zones by ID**, as a set per window (one zone, or a span), through `Arrangement<AXUIElement>`. That's why zone IDs must never be reused (issue 14).
 - **Presets are static fractions, with one exception.** `Presets.available(for:gap:)` adds the computed ultrawide preset, so the menu and the editor both list presets through it rather than `Presets.all`.
 - **Settings are forgiving.** A missing, corrupt, partial or out-of-range settings file falls back field by field. A single bad saved layout no longer resets the others. An invalid layout falls back to Halves.

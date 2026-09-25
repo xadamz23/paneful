@@ -40,10 +40,11 @@ Adam chose:
 | 2026-09-25 | Restore size on drag-out | A tiled window dragged out of its zone gets back the size it had before it was first snapped. Moving it between zones keeps that original size. The restore happens when you let go, not during the drag, because moving a window mid-drag fights the window server. `Geometry.restoredFrame` keeps the top edge where you dropped it, keeps the grabbed spot under the cursor, and keeps the window on the display. Sizes are remembered only while Paneful runs. (`f55190f`) |
 | 2026-09-25 | Span zones | Holding the span key (Option by default, set in Span Key ▸) as well as the modifier stretches the drop target from the zone it was pressed over to the zone under the cursor, as the smallest block of whole zones covering both. A window now covers a set of zones, and a spanning window resizes with its neighbours: its edge moves every divider it sits on, and a span's edges always stay straight. The review caught spans coming apart; see issues 18–19. |
 | 2026-09-25 | Auto-reset empty displays | When a display's last tiled window leaves (dragged out, moved to another display, closed or minimised), its arrangement goes back to the saved layout. `Arrangement.remove` resets once no windows are left. Closed windows are only noticed lazily, so `TilingController.forgetClosedWindows` checks them when a window drag starts, before the overlay shows. Moving the only window to another zone on the same display keeps the adjusted sizes. |
+| 2026-09-25 | Keyboard moves and Fill Zones | Ctrl+Option + an arrow moves the focused window to the zone left, right, above or below, on its own display only; at an edge nothing happens, and an untiled window first snaps into the zone under its centre. Carbon hotkeys need no extra permission and are swallowed. "Fill Zones" in the menu puts untiled windows into every display's empty zones, nearest first, leaving extra windows alone. Both go through `snap`, so they behave exactly like a drop. |
 
 ## Where it stands
 
-- All three spec phases are done and merged to `main`, plus four follow-ups: the ultrawide preset, restoring a window's size on drag-out, spanning a window across zones, and resetting a display once its last tiled window leaves. There are 128 unit tests, all passing.
+- All three spec phases are done and merged to `main`, plus five follow-ups: the ultrawide preset, restoring a window's size on drag-out, spanning a window across zones, resetting a display once its last tiled window leaves, and moving windows between zones by keyboard and filling empty zones. There are 144 unit tests, all passing.
 - It's installed at `/Applications/Paneful.app`, signed with a self-signed "Paneful Dev" certificate.
 - Settings live in `~/Library/Application Support/Paneful/settings.json`.
 - macOS's own window tiling is turned off (System Settings › Desktop & Dock), because it conflicts with Paneful.
@@ -66,6 +67,7 @@ scripts/make-signing-cert.sh   # one-time: creates the "Paneful Dev" signing ide
   - `Geometry.swift`: zone rectangles with the gap, hit-testing a point to a zone, and where a dragged-out window lands (`restoredFrame`).
   - `Coordinates.swift`: flips between AppKit and Accessibility coordinates.
   - `Span.swift`: the block of zones a span covers, and a zone set's combined rect.
+  - `Navigation.swift`, `Fill.swift`: the zone next to a window in a direction, and pairing untiled windows with empty zones.
   - `Arrangement.swift`: each display's working copy of its layout, plus which windows are tiled where.
   - `Dividers.swift`, `Edge.swift`, `ResizeTracker.swift`: linked resizing.
   - `LayoutEditing.swift`, `LayoutDraft.swift`, `DividerDrag.swift`: the editor.
@@ -74,6 +76,7 @@ scripts/make-signing-cert.sh   # one-time: creates the "Paneful Dev" signing ide
   - `WindowAccess.swift`: the only code that talks to the Accessibility API.
   - `TilingController.swift`: owns settings and arrangements, and snaps, refits and follows resizes. It also gives windows dragged out of their zone back their pre-snap size.
   - `DragMonitor.swift`: turns mouse presses into moves or resizes.
+  - `HotKeys.swift`: the Ctrl+Option + arrow hotkeys.
   - `OverlayController.swift`, `AppDelegate.swift`: the zone overlay and the menu.
   - `Editor*.swift`: the layout editor window.
 

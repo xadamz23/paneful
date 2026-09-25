@@ -16,11 +16,16 @@ Lessons that aren't specific to Paneful's features. Read this before touching wi
 - **Set a messaging timeout.** `AXUIElementSetMessagingTimeout` on the system-wide element (0.25 s) stops a hung app from freezing Paneful.
 - **Windows from an app that has quit** fail with `.cannotComplete`, not `.invalidUIElement`. Check `NSRunningApplication(processIdentifier:)?.isTerminated`.
 - **`AXUIElement` is `Hashable`** with `CFEqual` semantics, so fresh elements for the same window compare equal. It works as a dictionary key.
+- **An app's `kAXWindowsAttribute` lists only its windows on the current Space.** Windows on other Spaces don't appear (confirmed with a probe script), so enumerating visible windows needs no `CGWindowList` filter.
 
 ## Watching the mouse
 
 - `NSEvent.addGlobalMonitorForEvents` sees mouse-down, drag, mouse-up and modifier changes in other apps. It needs no extra permission for mouse events, and it never sees events aimed at Paneful's own windows. That's useful, because the editor and overlay can't trigger it.
 - macOS's own window tiling (Desktop & Dock settings) reacts to Option-drag and to dragging a window to a screen edge. Turn it off, or it fights Paneful.
+
+## Hotkeys
+
+- **Carbon `RegisterEventHotKey` still works** on macOS 27 from a SwiftPM-built app. It needs no Accessibility or Input Monitoring permission, and the keystroke is consumed. VoiceOver also uses Ctrl+Option, but only while it's on.
 
 ## Debugging the app
 
