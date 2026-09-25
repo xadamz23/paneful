@@ -7,6 +7,8 @@ final class TilingController {
     private(set) var settings: Settings
     private(set) var displays: [Display] = []
     private var arrangements: [String: Arrangement<AXUIElement>] = [:]
+    /// Each tiled window's size from before it was first snapped, given back when it's dragged out of its zone.
+    private var sizesBeforeSnap: [AXUIElement: CGSize] = [:]
 
     /// No zone gets narrower (or shorter) than this while resizing.
     static let minZoneSize: CGFloat = 100
@@ -43,6 +45,8 @@ final class TilingController {
 
     func snap(_ window: AXUIElement, to zone: ZoneID, on display: Display) {
         guard let rect = zoneRects(for: display)[zone] else { return }
+        // Moving between zones keeps the size from before the first snap.
+        if !isTiled(window) { sizesBeforeSnap[window] = WindowAccess.frame(of: window)?.size }
         untile(window)
         arrangements[display.id]?.assign(window, to: zone)
         WindowAccess.setFrame(rect, of: window, within: display.visibleFrame)
@@ -50,6 +54,18 @@ final class TilingController {
 
     func untile(_ window: AXUIElement) {
         for id in arrangements.keys { arrangements[id]?.remove(window) }
+    }
+
+    /// A tiled window was dragged out of its zone and let go at `point`: untile it and give it back the size it
+    /// had before it was snapped, keeping the grabbed spot under the cursor and the window on the display.
+    func dragOut(_ window: AXUIElement, releasedAt point: CGPoint) {
+        guard isTiled(window) else { return }
+        untile(window)
+        guard let size = sizesBeforeSnap.removeValue(forKey: window),
+              let current = WindowAccess.frame(of: window),
+              let display = display(containing: point) else { return }
+        let restored = Geometry.restoredFrame(from: current, to: size, grab: point, within: display.visibleFrame)
+        WindowAccess.setFrame(restored, of: window, within: display.visibleFrame)
     }
 
     func isTiled(_ window: AXUIElement) -> Bool {

@@ -20,6 +20,17 @@ public enum Geometry {
         return rects.first { $0.value.insetBy(dx: -gap / 2, dy: -gap / 2).contains(clamped) }?.key
     }
 
+    /// Where a window dragged out of its zone lands when given back its pre-snap `size`. The top edge stays put,
+    /// the point that was grabbed stays under the cursor horizontally, and the frame is kept inside `bounds`.
+    public static func restoredFrame(from current: CGRect, to size: CGSize, grab: CGPoint, within bounds: CGRect) -> CGRect {
+        let width = min(size.width, bounds.width)
+        let height = min(size.height, bounds.height)
+        let grabFraction = current.width > 0 ? (grab.x - current.minX) / current.width : 0
+        let x = min(max(grab.x - grabFraction * width, bounds.minX), bounds.maxX - width)
+        let y = min(max(current.minY, bounds.minY), bounds.maxY - height)
+        return CGRect(x: x.rounded(), y: y.rounded(), width: width, height: height)
+    }
+
     private static func place(_ node: Node, in rect: CGRect, gap: CGFloat, into rects: inout [ZoneID: CGRect]) {
         switch node {
         case .zone(let id):

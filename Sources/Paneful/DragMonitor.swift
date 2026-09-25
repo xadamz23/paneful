@@ -127,7 +127,10 @@ final class DragMonitor {
                 tiling.snap(window, to: target.zone, on: target.display)
             }
         case .moving(let window, nil):
-            tiling.untile(window)
+            let releasedAt = cursor
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [tiling] in
+                tiling.dragOut(window, releasedAt: releasedAt)
+            }
         case .resizing(let window, _, true):
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [tiling] in
                 tiling.finishResize(of: window)
