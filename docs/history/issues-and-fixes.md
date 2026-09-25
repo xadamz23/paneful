@@ -175,3 +175,19 @@ All in commit `4aaf0d5`:
 - **Root cause:** a move is only recognised once the window's reported frame changes, which lags about 37 mouse events behind (issue 9). The anchor was taken at that point.
 - **Fix:** `DragMonitor` remembers where the press happened, and anchors there when the span key is held from the start.
 
+
+---
+
+## Keyboard moves and Fill Zones
+
+### 20. A keyboard move could send a window back to another display *(code review)*
+- **Symptom (predicted):** a tiled window moved to another display without dragging (from a Window menu, or the app restoring its own position) stays tiled on its old display. Pressing Ctrl+Option + an arrow then snapped it back onto that old display, even though keyboard moves must never change display.
+- **Root cause:** `moveFocusedWindow` trusted the arrangement's record of where the window was tiled and never checked where the window actually was. Paneful doesn't notice non-drag display moves (a known limitation).
+- **Fix:** a tiled window counts as tiled for a keyboard move only if its display contains the window's current centre. Otherwise it's treated as untiled and snapped into the zone under its centre on the display it's really on.
+- **Verified:** by hand on Adam's displays. The check is app wiring, so there's no unit test.
+- **Commit:** `3ba82c2`
+
+### 21. Does Accessibility list windows on other Spaces? *(plan self-review)*
+- **What:** Fill Zones must only pick up windows on the current Space. It wasn't known whether an app's `kAXWindowsAttribute` includes windows on other Spaces.
+- **Found by:** a throwaway `swiftc` probe comparing each app's Accessibility windows with the on-screen `CGWindowList`. It was run again after Adam moved an Edge window to another Space: Edge then listed no windows.
+- **Outcome:** Accessibility lists only the current Space's windows, so `visibleWindows()` needs no on-screen filter. Recorded in [macos-gotchas.md](macos-gotchas.md).

@@ -10,7 +10,8 @@ It was built between 2026-09-24 and 2026-09-25 by Adam and Claude (Claude Code),
 | [macos-gotchas.md](macos-gotchas.md) | Platform and toolchain lessons: Accessibility API, SwiftPM without Xcode, SwiftUI, signing |
 | [design-decisions.md](design-decisions.md) | Key design choices and why, including deliberate deviations from the spec |
 | [../superpowers/specs/2026-09-24-paneful-design.md](../superpowers/specs/2026-09-24-paneful-design.md) | The design spec everything was built from |
-| [../superpowers/plans/](../superpowers/plans/) | The three implementation plans (one per phase) |
+| [../superpowers/specs/](../superpowers/specs/) | The follow-up specs (span zones; keyboard moves and Fill Zones) |
+| [../superpowers/plans/](../superpowers/plans/) | The implementation plans: one per phase, then one per follow-up |
 
 ## How we got here
 
@@ -100,7 +101,7 @@ These are accepted for now, and none are blockers:
 - **Things Paneful doesn't notice:**
   - A window moved to another **Space** is still considered tiled.
   - A **minimised** window stays untiled after it's restored, so you re-snap it.
-  - A tiled window moved to another display *without dragging* (from a Window menu, say) stays tiled, and a later resize can jump its dividers to their limits.
+  - A tiled window moved to another display *without dragging* (from a Window menu, say) stays tiled, and a later resize can jump its dividers to their limits. A keyboard move checks where the window really is, so it treats such a window as untiled there and never sends it back.
 - **Extra work:**
   - Pressing anywhere in a tiled zone checks all of that zone's windows, not only when you're near an edge.
   - While following a resize, Paneful checks whether each neighbour is still minimised or closed on every mouse event.
@@ -114,6 +115,9 @@ These are accepted for now, and none are blockers:
     - the middle drifts a few points until you pick the preset again;
     - the saved fractions no longer match the ones the Layout menu computes, so the menu shows the layout ticked above the presets, as it does for a Custom layout.
   - **Pre-snap sizes are kept only while Paneful runs.** After a relaunch, dragging a window out leaves it at its zone size.
+  - **If another app already owns Ctrl+Option + an arrow,** Paneful's hotkey silently fails to register and does nothing. Nothing reports why.
+  - **A window that can't shrink to its zone** after a keyboard move or Fill Zones isn't grown to fit, the same as after a drop. It overlaps its neighbour until the next resize.
+  - **Fill Zones can take about a second** if an app is hung, because each window's checks wait up to 0.25 s.
   - A window that's closed, minimised or untiled by a refit keeps its remembered size (`sizesBeforeSnap`) until Paneful quits. It's a tiny leak, and harmless.
 - **Editor polish:**
   - The prompt says "layout" when only the gap changed.
