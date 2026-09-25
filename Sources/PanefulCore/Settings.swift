@@ -28,7 +28,8 @@ public struct Settings: Codable, Equatable, Sendable {
 
     /// The saved layout for a display, or Halves if none is saved or the saved one is invalid.
     public func layout(forDisplay id: String) -> Layout {
-        if let layout = layouts[id], layout.root.isValid { return layout }
+        // Flattened, because layouts saved before splits were flattened can have same-axis nesting.
+        if let layout = layouts[id], layout.root.isValid { return Layout(name: layout.name, root: layout.root.flattened()) }
         return Presets.halves
     }
 

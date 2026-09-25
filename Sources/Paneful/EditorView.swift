@@ -66,6 +66,8 @@ struct LayoutCanvas: View {
 
     /// How close, in canvas points, a press must be to a divider to grab it.
     private static let handleReach: CGFloat = 6
+    /// How far, in canvas points, the cursor must travel before a grabbed divider starts moving.
+    private static let dragThreshold: CGFloat = 2
 
     var body: some View {
         GeometryReader { proxy in
@@ -104,23 +106,26 @@ struct LayoutCanvas: View {
     }
 
     private func drag(_ value: DragGesture.Value, scale: CGFloat, gap: CGFloat) {
-        if model.dragging == nil {
-            // Grab the divider under the press, if there is one.
-            let start = displayPoint(value.startLocation, scale: scale)
+        let start = displayPoint(value.startLocation, scale: scale)
+        if model.dragging?.start != start {
+            // A new press: grab the divider under it, if there is one.
             model.dragging = model.draft.layout.root.dividerHandle(at: start, in: frame, gap: gap, tolerance: Self.handleReach / scale)
+                .map { handle in
+                    let rect = Geometry.zoneRects(model.draft.layout.root, in: frame, gap: gap)[handle.zone]!
+                    return DividerDrag(zone: handle.zone, edge: handle.edge, grabbedAt: handle.edge.coordinate(of: rect), start: start)
+                }
         }
-        guard let (zone, edge) = model.dragging else { return }
-        let point = displayPoint(value.location, scale: scale)
-        // Keep the gap centred on the cursor: the zone's edge sits half a gap before it.
-        let position = (edge == .right ? point.x : point.y) - gap / 2
-        model.draft.moveDivider(edge, of: zone, to: position, in: frame, gap: gap, minSize: TilingController.minZoneSize)
+        // Only a real drag moves the divider; a click near one stays a click.
+        guard let drag = model.dragging,
+              let position = model.dragging?.position(for: displayPoint(value.location, scale: scale), threshold: Self.dragThreshold / scale) else { return }
+        model.draft.moveDivider(drag.edge, of: drag.zone, to: position, in: frame, gap: gap, minSize: TilingController.minZoneSize)
     }
 
     private func endDrag(_ value: DragGesture.Value, scale: CGFloat, rects: [ZoneID: CGRect]) {
         defer { model.dragging = nil }
-        guard model.dragging == nil else { return }
-        // A press that grabbed no divider is a click: select the zone under it, or nothing.
-        let point = displayPoint(value.location, scale: scale)
+        guard model.dragging?.hasMoved != true else { return }
+        // A press that didn't drag a divider is a click: select the zone it started on, or nothing.
+        let point = displayPoint(value.startLocation, scale: scale)
         model.draft.selected = rects.first { $0.value.contains(point) }?.key
     }
 }

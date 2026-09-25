@@ -10,11 +10,31 @@ import Testing
     }
 
     @Test func splitSideBySide() {
+        // Splitting a zone along its parent's axis adds a sibling rather than nesting a same-axis split.
         let split = Presets.halves.root.splitting(0, along: .vertical)
-        #expect(split.zoneIDs == [0, 2, 1])
-        #expect(rects(split)[0] == CGRect(x: 8, y: 39, width: 850, height: 1311))
-        #expect(rects(split)[2] == CGRect(x: 866, y: 39, width: 850, height: 1311))
-        #expect(rects(split)[1] == rects(Presets.halves.root)[1])
+        #expect(split == .split(.vertical, children: [.zone(0), .zone(2), .zone(1)], fractions: [0.25, 0.25, 0.5]))
+        #expect(rects(split)[0] == CGRect(x: 8, y: 39, width: 852, height: 1311))
+        #expect(rects(split)[2] == CGRect(x: 868, y: 39, width: 852, height: 1311))
+        #expect(rects(split)[1] == CGRect(x: 1728, y: 39, width: 1704, height: 1311))
+    }
+
+    @Test func draggingOneDividerOfASplitZoneLeavesTheOtherAlone() {
+        let node = Presets.halves.root.splitting(0, along: .vertical)
+        let before = rects(node)
+        let moved = node.movingEdge(.right, of: 2, to: before[2]!.maxX - 200, in: ultrawide, gap: 8, minSize: 100)!
+        #expect(rects(moved)[0] == before[0])
+    }
+
+    @Test func removeFlattensACollapsedSameAxisSplit() {
+        let node = Node.split(.vertical, children: [
+            .zone(0),
+            .split(.horizontal, children: [.zone(1), .split(.vertical, children: [.zone(2), .zone(3)], fractions: [0.5, 0.5])], fractions: [0.5, 0.5]),
+        ], fractions: [0.5, 0.5])
+        #expect(node.removing(1) == .split(.vertical, children: [.zone(0), .zone(2), .zone(3)], fractions: [0.5, 0.25, 0.25]))
+    }
+
+    @Test func splitUsesTheGivenNewZoneID() {
+        #expect(Presets.halves.root.splitting(1, along: .horizontal, newZone: 9).zoneIDs == [0, 1, 9])
     }
 
     @Test func splitTopBottom() {
@@ -76,6 +96,7 @@ import Testing
         #expect(node.isValid)
         #expect(Set(node.zoneIDs).count == node.zoneIDs.count)
         #expect(node.zoneIDs.sorted() == [0, 2, 4, 5])
+        #expect(!node.hasSameAxisNesting)
     }
 
     @Test func handleInTheGapBetweenHalves() {

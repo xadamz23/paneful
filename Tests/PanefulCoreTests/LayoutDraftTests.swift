@@ -67,4 +67,25 @@ import Testing
         #expect(!draft.isDirty)
         #expect(draft.selected == nil)
     }
+
+    @Test func removedZoneIDIsNotReusedBySplit() {
+        // Windows are matched to zones by ID on Save, so a removed zone's windows must not land in a new zone.
+        var draft = LayoutDraft(original: Presets.halves)
+        draft.selected = 1
+        draft.removeSelected()
+        draft.selected = 0
+        draft.splitSelected(along: .vertical)
+        #expect(!draft.layout.root.zoneIDs.contains(1))
+        #expect(draft.layout.root.zoneIDs == [0, 2])
+    }
+
+    @Test func revertAlsoResetsNewZoneIDs() {
+        var draft = LayoutDraft(original: Presets.halves)
+        draft.selected = 0
+        draft.splitSelected(along: .vertical)
+        draft.revert()
+        draft.selected = 0
+        draft.splitSelected(along: .vertical)
+        #expect(draft.layout.root.zoneIDs == [0, 2, 1])
+    }
 }

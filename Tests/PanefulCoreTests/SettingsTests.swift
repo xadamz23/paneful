@@ -82,4 +82,15 @@ import Testing
         #expect(settings.layout(forDisplay: "A") == Presets.thirds)
         #expect(settings.layouts["B"] == nil)
     }
+
+    @Test func savedSameAxisNestingIsFlattenedOnLoad() {
+        // Layouts saved before splits were flattened can nest a side-by-side split inside another,
+        // which makes dragging the outer divider move the inner one too.
+        var settings = Settings()
+        settings.layouts["A"] = Layout(name: "Custom", root: .split(.vertical, children: [
+            .zone(0),
+            .split(.vertical, children: [.zone(3), .zone(2)], fractions: [0.5, 0.5]),
+        ], fractions: [0.4, 0.6]))
+        #expect(settings.layout(forDisplay: "A").root == .split(.vertical, children: [.zone(0), .zone(3), .zone(2)], fractions: [0.4, 0.3, 0.3]))
+    }
 }

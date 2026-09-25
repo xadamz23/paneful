@@ -7,10 +7,13 @@ public struct LayoutDraft: Sendable {
     public let original: Layout
     public private(set) var layout: Layout
     public var selected: ZoneID?
+    /// IDs only ever go up, so a removed zone's ID (which Save uses to match windows) is never handed out again.
+    private var nextZoneID: ZoneID
 
     public init(original: Layout) {
         self.original = original
         self.layout = original
+        nextZoneID = (original.root.zoneIDs.max() ?? -1) + 1
     }
 
     public var isDirty: Bool { layout != original }
@@ -21,11 +24,13 @@ public struct LayoutDraft: Sendable {
     public mutating func apply(_ preset: Layout) {
         layout = preset
         selected = nil
+        nextZoneID = max(nextZoneID, (preset.root.zoneIDs.max() ?? -1) + 1)
     }
 
     public mutating func splitSelected(along axis: Axis) {
         guard let selected else { return }
-        edit(layout.root.splitting(selected, along: axis))
+        edit(layout.root.splitting(selected, along: axis, newZone: nextZoneID))
+        nextZoneID += 1
     }
 
     public mutating func removeSelected() {
@@ -42,6 +47,7 @@ public struct LayoutDraft: Sendable {
     public mutating func revert() {
         layout = original
         selected = nil
+        nextZoneID = (original.root.zoneIDs.max() ?? -1) + 1
     }
 
     private mutating func edit(_ root: Node) {

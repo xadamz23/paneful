@@ -28,6 +28,10 @@ final class EditorWindowController: NSWindowController, NSWindowDelegate {
         window?.makeKeyAndOrderFront(nil)
     }
 
+    func windowDidBecomeKey(_ notification: Notification) {
+        model.reloadIfUnchanged()
+    }
+
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         model.confirmDiscardingChanges()
     }
