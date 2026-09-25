@@ -71,6 +71,22 @@ final class TilingController {
         WindowAccess.setFrame(restored, of: window, within: display.visibleFrame)
     }
 
+    /// Moves the focused window one zone toward `edge` on the display it's tiled on, never onto another display;
+    /// at the display's edge nothing happens. An untiled window is snapped into the zone under its centre instead.
+    func moveFocusedWindow(toward edge: Edge) {
+        guard let window = WindowAccess.focusedWindow() else { return }
+        if let (display, zones) = location(of: window) {
+            guard let zone = Geometry.neighbour(of: zones, toward: edge, in: zoneRects(for: display)) else { return }
+            snap(window, to: [zone], on: display)
+        } else {
+            guard let frame = WindowAccess.frame(of: window) else { return }
+            let centre = CGPoint(x: frame.midX, y: frame.midY)
+            guard let display = display(containing: centre),
+                  let zone = Geometry.zone(at: centre, in: zoneRects(for: display), gap: gap) else { return }
+            snap(window, to: [zone], on: display)
+        }
+    }
+
     /// Untiles windows that were closed or minimised since Paneful last moved them, so a display left with no
     /// tiled windows goes back to its saved layout before the overlay shows it.
     func forgetClosedWindows() {

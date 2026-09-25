@@ -35,7 +35,21 @@ enum WindowAccess {
         } else {
             return nil
         }
-        return attribute(window, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole ? window : nil
+        return isStandard(window) ? window : nil
+    }
+
+    /// The frontmost app's focused window, if it's a standard window that isn't minimised or full screen.
+    /// Nil when Paneful itself is frontmost.
+    static func focusedWindow() -> AXUIElement? {
+        guard let app = NSWorkspace.shared.frontmostApplication, app.processIdentifier != getpid(),
+              let value = attribute(AXUIElementCreateApplication(app.processIdentifier), kAXFocusedWindowAttribute),
+              CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+        let window = value as! AXUIElement
+        return isStandard(window) && !isMinimized(window) && !isFullScreen(window) ? window : nil
+    }
+
+    private static func isStandard(_ window: AXUIElement) -> Bool {
+        attribute(window, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole
     }
 
     static func frame(of window: AXUIElement) -> CGRect? {

@@ -5,6 +5,7 @@ import ServiceManagement
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let tiling = TilingController(store: SettingsStore(url: SettingsStore.defaultURL))
     private lazy var dragMonitor = DragMonitor(tiling: tiling, overlay: OverlayController())
+    private lazy var hotKeys = HotKeys { [tiling = self.tiling] edge in tiling.moveFocusedWindow(toward: edge) }
     private lazy var editor = EditorWindowController(tiling: tiling)
     private var statusItem: NSStatusItem!
     private var trustTimer: Timer?
@@ -38,7 +39,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let trusted = WindowAccess.isTrusted()
         guard trusted != wasTrusted else { return }
         wasTrusted = trusted
-        if trusted { dragMonitor.start() } else { dragMonitor.stop() }
+        if trusted {
+            dragMonitor.start()
+            hotKeys.start()
+        } else {
+            dragMonitor.stop()
+            hotKeys.stop()
+        }
         let symbol = trusted ? "rectangle.split.3x1" : "exclamationmark.triangle"
         statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Paneful")
     }
