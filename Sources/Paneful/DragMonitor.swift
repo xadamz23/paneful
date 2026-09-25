@@ -11,8 +11,8 @@ final class DragMonitor {
         /// Pressed; waiting for one of the candidate windows to move or resize.
         case pending(candidates: [(window: AXUIElement, frame: CGRect)])
         case moving(AXUIElement, target: (display: Display, zone: ZoneID)?)
-        /// `lastFrame` is the window's frame at the previous drag event, so only edges the user moves count.
-        case resizing(AXUIElement, lastFrame: CGRect, linked: Bool)
+        /// The tracker decides which edges the user is dragging, so only those move dividers.
+        case resizing(AXUIElement, tracker: ResizeTracker, linked: Bool)
     }
 
     private let tiling: TilingController
@@ -76,10 +76,10 @@ final class DragMonitor {
             classify(candidates, modifierHeld: modifierHeld)
         case .moving(let window, _):
             updateMove(window, modifierHeld: modifierHeld)
-        case .resizing(let window, let lastFrame, let linked):
-            guard let frame = WindowAccess.frame(of: window), frame != lastFrame else { return }
-            let moved = tiling.followResize(of: window, from: lastFrame, to: frame)
-            gesture = .resizing(window, lastFrame: frame, linked: linked || moved)
+        case .resizing(let window, var tracker, let linked):
+            guard let frame = WindowAccess.frame(of: window) else { return }
+            let moved = tiling.followResize(of: window, moves: tracker.moves(to: frame))
+            gesture = .resizing(window, tracker: tracker, linked: linked || moved)
         }
     }
 
@@ -94,8 +94,9 @@ final class DragMonitor {
                 gesture = .moving(candidate.window, target: nil)
                 updateMove(candidate.window, modifierHeld: modifierHeld)
             } else if tiling.isTiled(candidate.window) {
-                let linked = tiling.followResize(of: candidate.window, from: candidate.frame, to: frame)
-                gesture = .resizing(candidate.window, lastFrame: frame, linked: linked)
+                var tracker = ResizeTracker(start: candidate.frame)
+                let linked = tiling.followResize(of: candidate.window, moves: tracker.moves(to: frame))
+                gesture = .resizing(candidate.window, tracker: tracker, linked: linked)
             } else {
                 gesture = .none
             }

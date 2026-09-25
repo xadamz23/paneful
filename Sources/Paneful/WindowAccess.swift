@@ -48,9 +48,9 @@ enum WindowAccess {
         return CGRect(origin: origin, size: extent)
     }
 
-    /// Moves and resizes a window. Returns false if the window no longer exists.
+    /// Moves and resizes a window onto the display area `bounds`. Returns false if the window no longer exists.
     @discardableResult
-    static func setFrame(_ frame: CGRect, of window: AXUIElement) -> Bool {
+    static func setFrame(_ frame: CGRect, of window: AXUIElement, within bounds: CGRect) -> Bool {
         var pid: pid_t = 0
         AXUIElementGetPid(window, &pid)
         let app = AXUIElementCreateApplication(pid)
@@ -63,11 +63,17 @@ enum WindowAccess {
         var size = frame.size
         let positionValue = AXValueCreate(.cgPoint, &origin)!
         let sizeValue = AXValueCreate(.cgSize, &size)!
-        // Position, size, position: moving first lets the size fit on the target display; the second move
-        // corrects apps that clamped the position against their old size.
-        guard AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue) != .invalidUIElement else { return false }
-        AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+        // macOS ignores resizing a window whose bottom hangs below its screen, so a window that isn't already
+        // inside the target display is first moved to its top-left corner.
+        if let current = self.frame(of: window), !bounds.contains(current) {
+            var corner = bounds.origin
+            AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, AXValueCreate(.cgPoint, &corner)!)
+        }
+        // Size, position, size. Some apps (Ghostty) silently ignore a resize that comes straight after a move,
+        // so resize first. The second resize covers apps that clamped the first one to the old display.
+        guard AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue) != .invalidUIElement else { return false }
         AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
+        AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
         return true
     }
 

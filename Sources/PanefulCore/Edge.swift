@@ -34,13 +34,3 @@ public struct EdgeMove: Equatable, Sendable {
         self.position = position
     }
 }
-
-extension Geometry {
-    /// Edges of `frame` that differ from `rect` by more than `tolerance`, in `Edge.allCases` order.
-    public static func movedEdges(from rect: CGRect, to frame: CGRect, tolerance: CGFloat = 1) -> [EdgeMove] {
-        Edge.allCases.compactMap { edge in
-            let position = edge.coordinate(of: frame)
-            return abs(position - edge.coordinate(of: rect)) > tolerance ? EdgeMove(edge: edge, position: position) : nil
-        }
-    }
-}

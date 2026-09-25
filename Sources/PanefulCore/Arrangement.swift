@@ -44,20 +44,6 @@ public struct Arrangement<Window: Hashable> {
         return true
     }
 
-    /// Follows one step of a user's resize of a window in `zone`: moves the dividers under the edges that moved
-    /// between `previous` and `frame`. Comparing against the previous frame rather than the zone keeps edges the
-    /// user didn't touch (a window sitting short of its zone, like Terminal's character grid) from moving dividers.
-    /// Returns whether any moved edge sat on a divider.
-    @discardableResult
-    public mutating func followResize(of zone: ZoneID, from previous: CGRect, to frame: CGRect, in displayFrame: CGRect, gap: CGFloat, minSize: CGFloat) -> Bool {
-        var linked = false
-        // Frames are whole points, so any change between two drag events is real; a 1 pt step must still count.
-        for move in Geometry.movedEdges(from: previous, to: frame, tolerance: 0.5) {
-            if moveEdge(move.edge, of: zone, to: move.position, in: displayFrame, gap: gap, minSize: minSize) { linked = true }
-        }
-        return linked
-    }
-
     /// Grows `zone` until it's at least `size` along each axis, for a window that refuses to shrink to its zone.
     /// It moves the divider on the zone's trailing side if there is one, otherwise the one on its leading side,
     /// so a zone against the screen's right or bottom edge grows back toward its neighbour.

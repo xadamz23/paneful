@@ -45,7 +45,7 @@ final class TilingController {
         guard let rect = zoneRects(for: display)[zone] else { return }
         untile(window)
         arrangements[display.id]?.assign(window, to: zone)
-        WindowAccess.setFrame(rect, of: window)
+        WindowAccess.setFrame(rect, of: window, within: display.visibleFrame)
     }
 
     func untile(_ window: AXUIElement) {
@@ -72,14 +72,20 @@ final class TilingController {
         return candidates
     }
 
-    /// Follows one step of a live resize of a tiled window, from its `previous` frame to `frame`. It moves the
-    /// dividers under the edges that moved and refits the other windows whose zones changed; the resized window
-    /// itself is left to the user's drag. Returns whether any divider was involved.
+    /// Follows one step of a live resize of a tiled window: moves the dividers under the dragged edges to their
+    /// new positions and refits the other windows whose zones changed; the resized window itself is left to the
+    /// user's drag. Returns whether any dragged edge sat on a divider.
     @discardableResult
-    func followResize(of window: AXUIElement, from previous: CGRect, to frame: CGRect) -> Bool {
+    func followResize(of window: AXUIElement, moves: [EdgeMove]) -> Bool {
         guard let (display, zone) = location(of: window), var arrangement = arrangements[display.id] else { return false }
         let before = arrangement.rects(in: display.visibleFrame, gap: gap)
-        guard arrangement.followResize(of: zone, from: previous, to: frame, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) else { return false }
+        var linked = false
+        for move in moves {
+            if arrangement.moveEdge(move.edge, of: zone, to: move.position, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) {
+                linked = true
+            }
+        }
+        guard linked else { return false }
         arrangements[display.id] = arrangement
         refit(display, changedFrom: before, except: window)
         return true
@@ -142,7 +148,7 @@ final class TilingController {
         let rects = arrangement.rects(in: display.visibleFrame, gap: gap)
         for window in arrangement.tiledWindows where window != skipped {
             guard let zone = arrangement.zone(of: window), let rect = rects[zone], old?[zone] != rect else { continue }
-            if WindowAccess.isGone(window) || WindowAccess.isMinimized(window) || !WindowAccess.setFrame(rect, of: window) {
+            if WindowAccess.isGone(window) || WindowAccess.isMinimized(window) || !WindowAccess.setFrame(rect, of: window, within: display.visibleFrame) {
                 arrangements[display.id]?.remove(window)
             }
         }

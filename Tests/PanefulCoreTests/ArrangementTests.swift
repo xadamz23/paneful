@@ -87,40 +87,6 @@ import Testing
 
     let ultrawide = CGRect(x: 0, y: 31, width: 3440, height: 1327)
 
-    @Test func followResizeMovesOnlyTheEdgeThatMovedSinceLastFrame() {
-        // A Terminal-like window sits 10 pt short of its zone's bottom (character grid); the user drags only its right edge.
-        var arrangement = Arrangement<String>(saved: Presets.grid2x2)
-        let zone = arrangement.rects(in: ultrawide, gap: 8)[0]!
-        let before = CGRect(x: zone.minX, y: zone.minY, width: zone.width, height: zone.height - 10)
-        let after = CGRect(x: zone.minX, y: zone.minY, width: zone.width + 200, height: zone.height - 10)
-        let linked = arrangement.followResize(of: 0, from: before, to: after, in: ultrawide, gap: 8, minSize: 100)
-        #expect(linked)
-        let rects = arrangement.rects(in: ultrawide, gap: 8)
-        #expect(rects[0]!.maxX == after.maxX)
-        #expect(rects[0]!.maxY == zone.maxY)   // row divider untouched
-    }
-
-    @Test func slowDragStillMovesTheDivider() {
-        // The user drags the shared edge 1 pt per mouse event; no step may be lost.
-        var arrangement = Arrangement<String>(saved: Presets.halves)
-        var frame = arrangement.rects(in: ultrawide, gap: 8)[0]!
-        for _ in 0..<50 {
-            let next = CGRect(x: frame.minX, y: frame.minY, width: frame.width + 1, height: frame.height)
-            arrangement.followResize(of: 0, from: frame, to: next, in: ultrawide, gap: 8, minSize: 100)
-            frame = next
-        }
-        #expect(arrangement.rects(in: ultrawide, gap: 8)[0]!.maxX == frame.maxX)
-    }
-
-    @Test func followResizeOfOuterEdgeLinksNothing() {
-        var arrangement = Arrangement<String>(saved: Presets.halves)
-        let zone = arrangement.rects(in: ultrawide, gap: 8)[0]!
-        let after = CGRect(x: zone.minX + 50, y: zone.minY, width: zone.width - 50, height: zone.height)
-        let linked = arrangement.followResize(of: 0, from: zone, to: after, in: ultrawide, gap: 8, minSize: 100)
-        #expect(!linked)
-        #expect(arrangement.working == Presets.halves.root)
-    }
-
     @Test func fitGrowsRightZoneTowardItsDividerWhenItOverflowsTheScreenEdge() {
         // Zone 1 was squeezed to 600 wide, but its window refuses to be narrower than 900.
         var arrangement = Arrangement<String>(saved: Presets.halves)
