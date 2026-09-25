@@ -17,7 +17,8 @@ struct EditorView: View {
 
             HStack {
                 Text("Presets")
-                ForEach(Presets.all, id: \.name) { preset in
+                // Computed for this display at the draft gap, so size-exact presets stay exact when saved.
+                ForEach(model.display.map { Presets.available(for: $0.visibleFrame, gap: CGFloat(model.gap)) } ?? Presets.all, id: \.name) { preset in
                     Button(preset.name) { model.draft.apply(preset) }
                 }
             }

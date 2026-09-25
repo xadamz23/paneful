@@ -58,15 +58,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(item("Edit Layouts…", #selector(openEditor)))
         for display in tiling.displays {
             let current = tiling.settings.layout(forDisplay: display.id)
+            let presets = Presets.available(for: display.visibleFrame, gap: tiling.gap)
             let submenu = NSMenu()
-            if !Presets.all.contains(current) {
+            if !presets.contains(current) {
                 // An edited layout: shown ticked above the presets, which would replace it.
                 let custom = NSMenuItem(title: current.name, action: nil, keyEquivalent: "")
                 custom.state = .on
                 submenu.addItem(custom)
                 submenu.addItem(.separator())
             }
-            for preset in Presets.all {
+            for preset in presets {
                 let choice = item(preset.name, #selector(chooseLayout(_:)))
                 choice.representedObject = LayoutChoice(displayID: display.id, layout: preset)
                 choice.state = preset == current ? .on : .off
