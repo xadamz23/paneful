@@ -48,6 +48,17 @@ enum WindowAccess {
         return isStandard(window) && !isMinimized(window) && !isFullScreen(window) ? window : nil
     }
 
+    /// Standard windows of visible regular apps, except Paneful's, that aren't minimised or full screen.
+    /// Accessibility lists only the current Space's windows, so windows on other Spaces never appear.
+    static func visibleWindows() -> [AXUIElement] {
+        NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular && !$0.isHidden && $0.processIdentifier != getpid() }
+            .flatMap { app in
+                attribute(AXUIElementCreateApplication(app.processIdentifier), kAXWindowsAttribute) as? [AXUIElement] ?? []
+            }
+            .filter { isStandard($0) && !isMinimized($0) && !isFullScreen($0) }
+    }
+
     private static func isStandard(_ window: AXUIElement) -> Bool {
         attribute(window, kAXSubroleAttribute) as? String == kAXStandardWindowSubrole
     }

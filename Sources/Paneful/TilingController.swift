@@ -87,6 +87,23 @@ final class TilingController {
         }
     }
 
+    /// Puts untiled visible windows into every display's empty zones: each goes to the nearest free zone on the
+    /// display its centre is on. Leftover windows and tiled windows are left alone.
+    func fillZones() {
+        forgetClosedWindows()
+        let untiled = WindowAccess.visibleWindows().filter { !isTiled($0) }.compactMap { window in
+            WindowAccess.frame(of: window).map { (window, CGPoint(x: $0.midX, y: $0.midY)) }
+        }
+        for display in displays {
+            guard let arrangement = arrangements[display.id] else { continue }
+            let empty = zoneRects(for: display).filter { arrangement.windows(in: $0.key).isEmpty }
+            let windows = untiled.filter { display.frame.contains($0.1) }
+            for (window, zone) in Geometry.fill(empty: empty, windows: windows) {
+                snap(window, to: [zone], on: display)
+            }
+        }
+    }
+
     /// Untiles windows that were closed or minimised since Paneful last moved them, so a display left with no
     /// tiled windows goes back to its saved layout before the overlay shows it.
     func forgetClosedWindows() {

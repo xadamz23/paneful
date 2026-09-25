@@ -96,6 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(parent("Modifier", keyMenu(selected: tiling.settings.modifier, action: #selector(chooseModifier(_:)))))
         menu.addItem(parent("Span Key", keyMenu(selected: tiling.settings.spanModifier, action: #selector(chooseSpanModifier(_:)))))
 
+        menu.addItem(item("Fill Zones", #selector(fillZones)))
         menu.addItem(item("Reset Arrangement", #selector(resetArrangement)))
         menu.addItem(.separator())
 
@@ -151,6 +152,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func resetArrangement() {
         tiling.resetArrangements()
+    }
+
+    @objc private func fillZones() {
+        tiling.fillZones()
     }
 
     @objc private func toggleLaunchAtLogin() {
