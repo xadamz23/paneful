@@ -100,6 +100,18 @@ import Testing
         #expect(rects[0]!.maxY == zone.maxY)   // row divider untouched
     }
 
+    @Test func slowDragStillMovesTheDivider() {
+        // The user drags the shared edge 1 pt per mouse event; no step may be lost.
+        var arrangement = Arrangement<String>(saved: Presets.halves)
+        var frame = arrangement.rects(in: ultrawide, gap: 8)[0]!
+        for _ in 0..<50 {
+            let next = CGRect(x: frame.minX, y: frame.minY, width: frame.width + 1, height: frame.height)
+            arrangement.followResize(of: 0, from: frame, to: next, in: ultrawide, gap: 8, minSize: 100)
+            frame = next
+        }
+        #expect(arrangement.rects(in: ultrawide, gap: 8)[0]!.maxX == frame.maxX)
+    }
+
     @Test func followResizeOfOuterEdgeLinksNothing() {
         var arrangement = Arrangement<String>(saved: Presets.halves)
         let zone = arrangement.rects(in: ultrawide, gap: 8)[0]!

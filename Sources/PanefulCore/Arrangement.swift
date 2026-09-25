@@ -51,7 +51,8 @@ public struct Arrangement<Window: Hashable> {
     @discardableResult
     public mutating func followResize(of zone: ZoneID, from previous: CGRect, to frame: CGRect, in displayFrame: CGRect, gap: CGFloat, minSize: CGFloat) -> Bool {
         var linked = false
-        for move in Geometry.movedEdges(from: previous, to: frame) {
+        // Frames are whole points, so any change between two drag events is real; a 1 pt step must still count.
+        for move in Geometry.movedEdges(from: previous, to: frame, tolerance: 0.5) {
             if moveEdge(move.edge, of: zone, to: move.position, in: displayFrame, gap: gap, minSize: minSize) { linked = true }
         }
         return linked
