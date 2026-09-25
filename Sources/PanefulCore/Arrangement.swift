@@ -31,8 +31,10 @@ public struct Arrangement<Window: Hashable> {
         assign(window, to: [zone])
     }
 
+    /// Untiles `window`. Once no windows are left, the working tree goes back to the saved layout.
     public mutating func remove(_ window: Window) {
         zonesOf[window] = nil
+        if zonesOf.isEmpty { reset() }
     }
 
     /// Restores the saved layout's boundaries; windows keep their zones.

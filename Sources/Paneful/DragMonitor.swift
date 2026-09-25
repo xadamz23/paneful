@@ -93,6 +93,7 @@ final class DragMonitor {
             if WindowAccess.isFullScreen(candidate.window) {
                 gesture = .none
             } else if frame.size == candidate.frame.size {
+                tiling.forgetClosedWindows()
                 // A move is recognised some way into the drag, so a span key held from the start anchors where the press was.
                 gesture = .moving(candidate.window, target: nil, anchor: flags.contains(tiling.settings.spanModifier.flags) ? zone(at: pressedAt) : nil)
                 updateMove(candidate.window, flags: flags)

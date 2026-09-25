@@ -17,6 +17,7 @@ The choices that shape Paneful, and why we made them. The full design is in the 
 | **A window dragged out of its zone gets back its pre-snap size** | It's restored when you let go, not mid-drag. The top edge stays where you dropped it, and the spot you grabbed stays under the cursor. Moving a window between zones keeps its original size. |
 | **An ultrawide preset whose middle is exactly 1440 pt** | "Thirds · 1440 middle" is offered only on displays at least twice as wide as tall. Its fractions are computed for the display and gap when it's offered. |
 | **Span zones with a second key, as a block of whole zones** | Shift+Option-drag covers the anchor zone and the one under the cursor, never half a zone. A span is only where the window sits: the saved layout doesn't change, and a span whose zone is removed untiles its window. |
+| **A display with no tiled windows goes back to its saved layout** | Once its last window is dragged out, moved to another display, closed or minimised, the next window lands in a saved-size zone without a Reset. Moving the only window to another zone on the same display keeps the adjusted sizes, because the zones never become empty. |
 
 ## Architecture decisions
 

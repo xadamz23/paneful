@@ -39,6 +39,31 @@ import Testing
         #expect(arrangement.tiledWindows.isEmpty)
     }
 
+    @Test func removingTheLastWindowRestoresTheSavedTree() {
+        var arrangement = Arrangement<String>(saved: Presets.halves)
+        arrangement.assign("a", to: 0)
+        arrangement.moveEdge(.right, of: [0], to: 2000, in: ultrawide, gap: 8, minSize: 100)
+        arrangement.remove("a")
+        #expect(arrangement.working == Presets.halves.root)
+    }
+
+    @Test func removingOneOfTwoWindowsKeepsTheWorkingTree() {
+        var arrangement = Arrangement<String>(saved: Presets.halves)
+        arrangement.assign("a", to: 0)
+        arrangement.assign("b", to: 1)
+        arrangement.moveEdge(.right, of: [0], to: 2000, in: ultrawide, gap: 8, minSize: 100)
+        arrangement.remove("a")
+        #expect(arrangement.rects(in: ultrawide, gap: 8)[0]!.maxX == 2000)
+    }
+
+    @Test func reassigningTheOnlyWindowKeepsTheWorkingTree() {
+        var arrangement = Arrangement<String>(saved: Presets.halves)
+        arrangement.assign("a", to: 0)
+        arrangement.moveEdge(.right, of: [0], to: 2000, in: ultrawide, gap: 8, minSize: 100)
+        arrangement.assign("a", to: 1)
+        #expect(arrangement.rects(in: ultrawide, gap: 8)[0]!.maxX == 2000)
+    }
+
     @Test func resetRestoresSavedTreeAndKeepsWindows() {
         var arrangement = Arrangement<String>(saved: Presets.halves)
         arrangement.assign("a", to: 1)

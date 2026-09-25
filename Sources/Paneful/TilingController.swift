@@ -48,7 +48,9 @@ final class TilingController {
         guard let rect = Geometry.union(of: zones, in: zoneRects(for: display)) else { return }
         // Moving between zones keeps the size from before the first snap.
         if !isTiled(window) { sizesBeforeSnap[window] = WindowAccess.frame(of: window)?.size }
-        untile(window)
+        // Only other displays untile it: assign replaces its zones here, so moving a display's only window
+        // between zones doesn't empty the display and reset it.
+        for id in arrangements.keys where id != display.id { arrangements[id]?.remove(window) }
         arrangements[display.id]?.assign(window, to: zones)
         WindowAccess.setFrame(rect, of: window, within: display.visibleFrame)
     }
@@ -67,6 +69,17 @@ final class TilingController {
               let display = display(containing: point) else { return }
         let restored = Geometry.restoredFrame(from: current, to: size, grab: point, within: display.visibleFrame)
         WindowAccess.setFrame(restored, of: window, within: display.visibleFrame)
+    }
+
+    /// Untiles windows that were closed or minimised since Paneful last moved them, so a display left with no
+    /// tiled windows goes back to its saved layout before the overlay shows it.
+    func forgetClosedWindows() {
+        for (id, arrangement) in arrangements {
+            for window in arrangement.tiledWindows
+            where WindowAccess.isGone(window) || WindowAccess.isMinimized(window) || WindowAccess.frame(of: window) == nil {
+                arrangements[id]?.remove(window)
+            }
+        }
     }
 
     func isTiled(_ window: AXUIElement) -> Bool {
