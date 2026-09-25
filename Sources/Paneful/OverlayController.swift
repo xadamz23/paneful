@@ -5,7 +5,8 @@ import PanefulCore
 final class OverlayController {
     private var windows: [String: NSWindow] = [:]
 
-    func show(on display: Display, rects: [ZoneID: CGRect], highlighted: ZoneID?) {
+    /// Draws `rects` on `display`, with `highlighted` (the landing rect: one zone, or a span) drawn over them.
+    func show(on display: Display, rects: [ZoneID: CGRect], highlighted: CGRect?) {
         for (id, window) in windows where id != display.id { window.orderOut(nil) }
         let window = windows[display.id] ?? makeWindow()
         windows[display.id] = window
@@ -13,11 +14,12 @@ final class OverlayController {
 
         // Zone rects are in Accessibility coordinates; the view wants AppKit coordinates relative to the screen.
         let origin = display.screen.frame.origin
-        let view = window.contentView as! ZoneOverlayView
-        view.zones = rects.map { id, rect in
-            (id: id, rect: Coordinates.flip(rect, primaryScreenHeight: Displays.primaryHeight).offsetBy(dx: -origin.x, dy: -origin.y))
+        let local = { (rect: CGRect) in
+            Coordinates.flip(rect, primaryScreenHeight: Displays.primaryHeight).offsetBy(dx: -origin.x, dy: -origin.y)
         }
-        view.highlighted = highlighted
+        let view = window.contentView as! ZoneOverlayView
+        view.zones = rects.values.map(local)
+        view.highlighted = highlighted.map(local)
         view.needsDisplay = true
         window.orderFrontRegardless()
     }
@@ -41,18 +43,21 @@ final class OverlayController {
 }
 
 final class ZoneOverlayView: NSView {
-    var zones: [(id: ZoneID, rect: CGRect)] = []
-    var highlighted: ZoneID?
+    var zones: [CGRect] = []
+    var highlighted: CGRect?
 
     override func draw(_ dirtyRect: NSRect) {
-        for zone in zones {
-            let isHighlighted = zone.id == highlighted
-            let path = NSBezierPath(roundedRect: zone.rect, xRadius: 10, yRadius: 10)
-            NSColor.controlAccentColor.withAlphaComponent(isHighlighted ? 0.35 : 0.12).setFill()
-            path.fill()
-            NSColor.controlAccentColor.withAlphaComponent(isHighlighted ? 0.9 : 0.4).setStroke()
-            path.lineWidth = 2
-            path.stroke()
-        }
+        // Zones under the highlight are drawn as the one landing rect.
+        for zone in zones where highlighted?.contains(zone) != true { draw(zone, isHighlighted: false) }
+        if let highlighted { draw(highlighted, isHighlighted: true) }
+    }
+
+    private func draw(_ rect: CGRect, isHighlighted: Bool) {
+        let path = NSBezierPath(roundedRect: rect, xRadius: 10, yRadius: 10)
+        NSColor.controlAccentColor.withAlphaComponent(isHighlighted ? 0.35 : 0.12).setFill()
+        path.fill()
+        NSColor.controlAccentColor.withAlphaComponent(isHighlighted ? 0.9 : 0.4).setStroke()
+        path.lineWidth = 2
+        path.stroke()
     }
 }

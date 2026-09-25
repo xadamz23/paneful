@@ -20,6 +20,7 @@ import Testing
         let settings = Settings()
         #expect(settings.gap == 8)
         #expect(settings.modifier == .shift)
+        #expect(settings.spanModifier == .option)
         #expect(settings.layouts.isEmpty)
     }
 
@@ -36,12 +37,45 @@ import Testing
         let settings = try store(containing: #"{"gap": 12}"#).load()
         #expect(settings.gap == 12)
         #expect(settings.modifier == .shift)
+        #expect(settings.spanModifier == .option)
         #expect(settings.layouts.isEmpty)
     }
 
     @Test func unknownModifierFallsBackToShift() throws {
         let settings = try store(containing: #"{"gap": 4, "modifier": "hyper"}"#).load()
         #expect(settings.gap == 4)
+        #expect(settings.modifier == .shift)
+    }
+
+    @Test func unknownSpanKeyFallsBackToOption() throws {
+        #expect(try store(containing: #"{"spanModifier": "hyper"}"#).load().spanModifier == .option)
+    }
+
+    @Test func equalKeysOnLoadFallBack() throws {
+        // An older file that set the snap modifier to Option, before the span key existed.
+        let settings = try store(containing: #"{"modifier": "option"}"#).load()
+        #expect(settings.modifier == .option)
+        #expect(settings.spanModifier == .shift)
+    }
+
+    @Test func settingTheModifierToTheSpanKeySwapsThem() {
+        var settings = Settings()
+        settings.setModifier(.option)
+        #expect(settings.modifier == .option)
+        #expect(settings.spanModifier == .shift)
+    }
+
+    @Test func settingTheSpanKeyToTheModifierSwapsThem() {
+        var settings = Settings()
+        settings.setSpanModifier(.shift)
+        #expect(settings.spanModifier == .shift)
+        #expect(settings.modifier == .option)
+    }
+
+    @Test func settingAnUnusedKeyDoesNotSwap() {
+        var settings = Settings()
+        settings.setSpanModifier(.control)
+        #expect(settings.spanModifier == .control)
         #expect(settings.modifier == .shift)
     }
 
@@ -54,7 +88,8 @@ import Testing
         let store = tempStore()
         var settings = Settings()
         settings.gap = 16
-        settings.modifier = .option
+        settings.setModifier(.command)
+        settings.setSpanModifier(.control)
         settings.layouts["B04199E5-A47E-4E90-8D02-B248A7B36CBE"] = Presets.thirds
         try store.save(settings)
         #expect(store.load() == settings)

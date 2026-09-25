@@ -58,7 +58,7 @@ import Testing
         for _ in 0..<50 {
             frame.size.width += 1
             for move in tracker.moves(to: frame) {
-                arrangement.moveEdge(move.edge, of: 0, to: move.position, in: ultrawide, gap: 8, minSize: 100)
+                arrangement.moveEdge(move.edge, of: [0], to: move.position, in: ultrawide, gap: 8, minSize: 100)
             }
         }
         #expect(arrangement.rects(in: ultrawide, gap: 8)[0]!.maxX == frame.maxX)

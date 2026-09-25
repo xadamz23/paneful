@@ -86,14 +86,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         menu.addItem(parent("Gap", gapMenu))
 
-        let modifierMenu = NSMenu()
-        for modifier in ModifierKey.allCases {
-            let choice = item(modifier.title, #selector(chooseModifier(_:)))
-            choice.representedObject = modifier
-            choice.state = modifier == tiling.settings.modifier ? .on : .off
-            modifierMenu.addItem(choice)
-        }
-        menu.addItem(parent("Modifier", modifierMenu))
+        menu.addItem(parent("Modifier", keyMenu(selected: tiling.settings.modifier, action: #selector(chooseModifier(_:)))))
+        menu.addItem(parent("Span Key", keyMenu(selected: tiling.settings.spanModifier, action: #selector(chooseSpanModifier(_:)))))
 
         menu.addItem(item("Reset Arrangement", #selector(resetArrangement)))
         menu.addItem(.separator())
@@ -116,6 +110,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return item
     }
 
+    private func keyMenu(selected: ModifierKey, action: Selector) -> NSMenu {
+        let menu = NSMenu()
+        for key in ModifierKey.allCases {
+            let choice = item(key.title, action)
+            choice.representedObject = key
+            choice.state = key == selected ? .on : .off
+            menu.addItem(choice)
+        }
+        return menu
+    }
+
     @objc private func chooseLayout(_ sender: NSMenuItem) {
         guard let choice = sender.representedObject as? LayoutChoice,
               let display = tiling.displays.first(where: { $0.id == choice.displayID }) else { return }
@@ -130,6 +135,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func chooseModifier(_ sender: NSMenuItem) {
         guard let modifier = sender.representedObject as? ModifierKey else { return }
         tiling.setModifier(modifier)
+    }
+
+    @objc private func chooseSpanModifier(_ sender: NSMenuItem) {
+        guard let modifier = sender.representedObject as? ModifierKey else { return }
+        tiling.setSpanModifier(modifier)
     }
 
     @objc private func resetArrangement() {

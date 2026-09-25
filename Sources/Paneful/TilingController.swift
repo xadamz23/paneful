@@ -43,12 +43,13 @@ final class TilingController {
         arrangements[display.id]?.rects(in: display.visibleFrame, gap: gap) ?? [:]
     }
 
-    func snap(_ window: AXUIElement, to zone: ZoneID, on display: Display) {
-        guard let rect = zoneRects(for: display)[zone] else { return }
+    /// Tiles `window` in `zones` (one zone, or a span), filling their combined rect.
+    func snap(_ window: AXUIElement, to zones: Set<ZoneID>, on display: Display) {
+        guard let rect = Geometry.union(of: zones, in: zoneRects(for: display)) else { return }
         // Moving between zones keeps the size from before the first snap.
         if !isTiled(window) { sizesBeforeSnap[window] = WindowAccess.frame(of: window)?.size }
         untile(window)
-        arrangements[display.id]?.assign(window, to: zone)
+        arrangements[display.id]?.assign(window, to: zones)
         WindowAccess.setFrame(rect, of: window, within: display.visibleFrame)
     }
 
@@ -93,11 +94,11 @@ final class TilingController {
     /// user's drag. Returns whether any dragged edge sat on a divider.
     @discardableResult
     func followResize(of window: AXUIElement, moves: [EdgeMove]) -> Bool {
-        guard let (display, zone) = location(of: window), var arrangement = arrangements[display.id] else { return false }
+        guard let (display, zones) = location(of: window), var arrangement = arrangements[display.id] else { return false }
         let before = arrangement.rects(in: display.visibleFrame, gap: gap)
         var linked = false
         for move in moves {
-            if arrangement.moveEdge(move.edge, of: zone, to: move.position, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) {
+            if arrangement.moveEdge(move.edge, of: zones, to: move.position, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) {
                 linked = true
             }
         }
@@ -115,8 +116,8 @@ final class TilingController {
         guard var arrangement = arrangements[display.id] else { return }
         var moved = false
         for tiled in arrangement.tiledWindows {
-            guard let zone = arrangement.zone(of: tiled), let actual = WindowAccess.frame(of: tiled) else { continue }
-            if arrangement.fit(zone, toAtLeast: actual.size, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) {
+            guard let zones = arrangement.zones(of: tiled), let actual = WindowAccess.frame(of: tiled) else { continue }
+            if arrangement.fit(zones, toAtLeast: actual.size, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) {
                 moved = true
             }
         }
@@ -125,9 +126,9 @@ final class TilingController {
         refit(display)
     }
 
-    private func location(of window: AXUIElement) -> (display: Display, zone: ZoneID)? {
+    private func location(of window: AXUIElement) -> (display: Display, zones: Set<ZoneID>)? {
         for display in displays {
-            if let zone = arrangements[display.id]?.zone(of: window) { return (display, zone) }
+            if let zones = arrangements[display.id]?.zones(of: window) { return (display, zones) }
         }
         return nil
     }
@@ -153,17 +154,23 @@ final class TilingController {
     }
 
     func setModifier(_ modifier: ModifierKey) {
-        settings.modifier = modifier
+        settings.setModifier(modifier)
         save()
     }
 
-    /// Moves tiled windows on `display` to their zone rects. Given `old` rects, it moves only windows whose rect
-    /// changed. Windows that were closed, minimised or whose app quit are untiled instead.
+    func setSpanModifier(_ modifier: ModifierKey) {
+        settings.setSpanModifier(modifier)
+        save()
+    }
+
+    /// Moves tiled windows on `display` to their zone rects. Given `old` rects, it moves only windows whose
+    /// (combined) rect changed. Windows that were closed, minimised or whose app quit are untiled instead.
     private func refit(_ display: Display, changedFrom old: [ZoneID: CGRect]? = nil, except skipped: AXUIElement? = nil) {
         guard let arrangement = arrangements[display.id] else { return }
         let rects = arrangement.rects(in: display.visibleFrame, gap: gap)
         for window in arrangement.tiledWindows where window != skipped {
-            guard let zone = arrangement.zone(of: window), let rect = rects[zone], old?[zone] != rect else { continue }
+            guard let zones = arrangement.zones(of: window), let rect = Geometry.union(of: zones, in: rects),
+                  old.flatMap({ Geometry.union(of: zones, in: $0) }) != rect else { continue }
             if WindowAccess.isGone(window) || WindowAccess.isMinimized(window) || !WindowAccess.setFrame(rect, of: window, within: display.visibleFrame) {
                 arrangements[display.id]?.remove(window)
             }

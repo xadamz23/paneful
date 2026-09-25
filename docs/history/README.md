@@ -38,10 +38,11 @@ Adam chose:
 | 2026-09-25 | Phase 3: visual editor | Split, remove and divider-drag logic, the Edit Layouts window, and "Custom" layouts. The review plus Adam's testing found zone-ID reuse and tied dividers. Fixed. Merged. |
 | 2026-09-25 | Ultrawide preset | Added "Thirds · 1440 middle", offered only on displays at least twice as wide as tall. Its proportions are calculated for the display and gap when you pick it, so the middle is exactly 1440 px: 992 \| 1440 \| 992 on the Sceptre at a 4 pt gap. If the gap changes later, the middle drifts a few pixels until you pick the preset again. (`ce47bca`) |
 | 2026-09-25 | Restore size on drag-out | A tiled window dragged out of its zone gets back the size it had before it was first snapped. Moving it between zones keeps that original size. The restore happens when you let go, not during the drag, because moving a window mid-drag fights the window server. `Geometry.restoredFrame` keeps the top edge where you dropped it, keeps the grabbed spot under the cursor, and keeps the window on the display. Sizes are remembered only while Paneful runs. (`f55190f`) |
+| 2026-09-25 | Span zones | Holding the span key (Option by default, set in Span Key ▸) as well as the modifier stretches the drop target from the zone it was pressed over to the zone under the cursor, as the smallest block of whole zones covering both. A window now covers a set of zones, and a spanning window resizes with its neighbours: its edge moves every divider it sits on, and a span's edges always stay straight. The review caught spans coming apart; see issues 18–19. |
 
 ## Where it stands
 
-- All three spec phases are done and merged to `main`, plus two follow-ups: the ultrawide preset and restoring a window's size on drag-out. There are 102 unit tests, all passing.
+- All three spec phases are done and merged to `main`, plus three follow-ups: the ultrawide preset, restoring a window's size on drag-out, and spanning a window across zones. There are 125 unit tests, all passing.
 - It's installed at `/Applications/Paneful.app`, signed with a self-signed "Paneful Dev" certificate.
 - Settings live in `~/Library/Application Support/Paneful/settings.json`.
 - macOS's own window tiling is turned off (System Settings › Desktop & Dock), because it conflicts with Paneful.
@@ -63,6 +64,7 @@ scripts/make-signing-cert.sh   # one-time: creates the "Paneful Dev" signing ide
   - `Presets.swift`: the fixed presets, plus the ultrawide one computed per display and gap (`Presets.available(for:gap:)`).
   - `Geometry.swift`: zone rectangles with the gap, hit-testing a point to a zone, and where a dragged-out window lands (`restoredFrame`).
   - `Coordinates.swift`: flips between AppKit and Accessibility coordinates.
+  - `Span.swift`: the block of zones a span covers, and a zone set's combined rect.
   - `Arrangement.swift`: each display's working copy of its layout, plus which windows are tiled where.
   - `Dividers.swift`, `Edge.swift`, `ResizeTracker.swift`: linked resizing.
   - `LayoutEditing.swift`, `LayoutDraft.swift`, `DividerDrag.swift`: the editor.
@@ -102,6 +104,8 @@ These are accepted for now, and none are blockers:
 - **Small behaviour gaps:**
   - When two windows refuse to shrink onto the same divider, which one wins is arbitrary.
   - Choosing a preset moves tiled windows by zone number, so the window in zone 1 goes to the new zone 1.
+  - **A span survives a layout change whenever its zones still exist, even if they no longer form a block.** For example, the editor splits a zone inside the span. The window then covers the new zone without being assigned to it. Untiling or re-snapping fixes it.
+  - **Dragging onto another display with the span key held re-anchors at the first zone reached there.** Paneful doesn't require re-pressing the key.
   - **"Thirds · 1440 middle" is exact only at the gap it was picked with.** After a gap change:
     - the middle drifts a few points until you pick the preset again;
     - the saved fractions no longer match the ones the Layout menu computes, so the menu shows the layout ticked above the presets, as it does for a Custom layout.

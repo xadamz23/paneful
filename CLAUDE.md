@@ -42,15 +42,15 @@ The ideas that span several files:
   - Same-axis nesting is always **flattened** (`LayoutEditing.swift` `flattened()`): after every split and remove, and when `Settings` loads a layout. Nesting would tie dividers together.
 - **Saved layout vs working copy.**
   - `Settings.layouts[displayUUID]` is the saved layout, and resizing never writes to it.
-  - `Arrangement<Window>` holds a display's working tree (the adjusted fractions) plus which windows sit in which zone.
-  - Windows are matched to zones by **zone ID**. So `Arrangement.rebased(on:)` keeps windows whose zone ID survives a layout change, and zone IDs must never be reused (`LayoutDraft.nextZoneID`).
+  - `Arrangement<Window>` holds a display's working tree (the adjusted fractions) plus which zones each window covers: a set, one zone or a span (`Geometry.span`). A span's edge can sit on dividers in different splits, so `Arrangement.moveEdge` always moves every divider tied to it by a tiled span, and aligns them if one clamps.
+  - Windows are matched to zones by **zone ID**. So `Arrangement.rebased(on:)` keeps windows whose zone IDs all survive a layout change, and zone IDs must never be reused (`LayoutDraft.nextZoneID`).
 - **`Geometry.zoneRects`** turns a tree, a display's visible frame and the gap into zone rects. One gap is used both between zones and at the screen edges, and each boundary is rounded once so neighbours share edges exactly. The overlay, snapping, refits and the editor canvas all use this one function.
 - **`TilingController`** is the app's hub. It owns the settings, the displays (`Displays.current()`, keyed by display UUID) and each display's `Arrangement`. It snaps windows, refits them, follows live resizes (`followResize`) and finishes them (`finishResize`, which grows zones for windows that refused to shrink via `Arrangement.fit`). When a tiled window is dragged out of its zone, `dragOut` gives it back the size from before its first snap (`sizesBeforeSnap`, placed with `Geometry.restoredFrame`). Everything the menu, the drag monitor and the editor do goes through it.
 - **`WindowAccess`** is the **only** file that calls the Accessibility API. It hard-won several rules:
   - `setFrame` first moves a window onto the target display if it isn't inside it, because macOS ignores resizing a window whose bottom hangs off its screen.
   - It then sets size, position, size, because some apps ignore a resize that comes straight after a move.
   - Setters report success even when they did nothing.
-- **`DragMonitor`** uses a global `NSEvent` monitor. It turns each press into a gesture: `pending` becomes `moving` (the modifier shows the overlay and release snaps) or `resizing` (a tiled window's edge drag, where dividers follow live).
+- **`DragMonitor`** uses a global `NSEvent` monitor. It turns each press into a gesture: `pending` becomes `moving` (the modifier shows the overlay and release snaps; holding the span key too stretches the target from an anchor zone) or `resizing` (a tiled window's edge drag, where dividers follow live).
   - It classifies by watching candidate windows' frames change, and must keep watching until mouse-up: a dragged window's position is reported about 37 events late.
   - `ResizeTracker` locks one dragged edge per axis, because torn position/size reads make the opposite edge appear to move.
 - **The editor** consists of `EditorModel`, `EditorView` (with `LayoutCanvas`) and `EditorWindowController`. The pure pieces are in core: `LayoutDraft`, `Node.splitting` and `removing`, `dividerHandle`, and `DividerDrag`. Nothing reaches the screen until Save, which calls `setLayout` and then `setGap`.

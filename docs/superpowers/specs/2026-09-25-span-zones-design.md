@@ -18,7 +18,9 @@ Success:
   - It's built from the two zones' bounding box, then any zone that overlaps the box is added and the box grows, repeated until stable. So a span never half-covers a zone.
   - Examples: in Thirds, A → B gives A+B, and A → C gives all three. In 2 × 2, TL → BR gives the whole screen.
 - Moving back over the anchor shrinks the span to that one zone.
-- Releasing the span key, or moving to another display, drops the anchor. The target goes back to a single zone, and pressing the span key again sets a new anchor.
+- Releasing the span key drops the anchor, and the target goes back to a single zone. Pressing the span key again sets a new anchor.
+- Moving to another display drops the anchor too. With the span key still held, the first zone reached there becomes the new anchor.
+- If the span key is already held when the drag starts, the anchor is the zone where the mouse was pressed. The move is only recognised some way into the drag, and by then the cursor may be over the next zone.
 - The span key without the snap modifier does nothing special. It's a plain drag, so a tiled window is untiled and its pre-snap size restored.
 
 **Overlay:** the zones in the span are drawn as one highlighted rounded rect, which is the exact landing rect. The other zones are drawn as now.
@@ -28,6 +30,8 @@ Success:
 **Linked resizing:**
 - A spanning window's edge moves the divider under that edge for **every** zone in the span whose edge lies on the span's outer edge. The neighbours follow live.
   - Example: in 2 × 2, a window spanning TL+TR has its bottom edge over two separate row dividers (one per column). Dragging it moves both.
+- **A span's edges stay straight.** Any divider move that touches a divider under a span's edge moves every divider under that edge. That includes a neighbour's resize, and a window stacked in one of the span's zones.
+  - If one of those dividers clamps (a zone reaching its 100 pt minimum), they all stop at the same place.
 - A span's outer edge against the screen resizes freely, the same as an outer edge today.
 - Moving a divider *inside* a span (from a window stacked in one of its zones) doesn't change the span's rect.
 - Refusing windows: `finishResize` grows a spanning window's block until it fits, using the same trailing-then-leading rule as today, applied to the block's edges.

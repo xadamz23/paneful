@@ -7,7 +7,10 @@ public enum ModifierKey: String, Codable, CaseIterable, Sendable {
 public struct Settings: Codable, Equatable, Sendable {
     /// Space in points between zones and at screen edges, 0 to 40.
     public var gap: Double = 8
-    public var modifier: ModifierKey = .shift
+    /// Held while dragging a window to show zones. Never the same key as `spanModifier`.
+    public private(set) var modifier: ModifierKey = .shift
+    /// Held as well as `modifier` to stretch the drop target across zones.
+    public private(set) var spanModifier: ModifierKey = .option
     /// Saved layout per display, keyed by display UUID.
     public var layouts: [String: Layout] = [:]
 
@@ -18,6 +21,8 @@ public struct Settings: Codable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         gap = min(max((try? container.decodeIfPresent(Double.self, forKey: .gap)) ?? 8, 0), 40)
         modifier = (try? container.decodeIfPresent(ModifierKey.self, forKey: .modifier)) ?? .shift
+        spanModifier = (try? container.decodeIfPresent(ModifierKey.self, forKey: .spanModifier)) ?? .option
+        if spanModifier == modifier { spanModifier = ModifierKey.allCases.first { $0 != modifier }! }
         // Decode each display's layout on its own, so one bad entry doesn't discard the rest.
         if let entries = try? container.nestedContainer(keyedBy: DisplayKey.self, forKey: .layouts) {
             for key in entries.allKeys {
@@ -31,6 +36,18 @@ public struct Settings: Codable, Equatable, Sendable {
         // Flattened, because layouts saved before splits were flattened can have same-axis nesting.
         if let layout = layouts[id], layout.root.isValid { return Layout(name: layout.name, root: layout.root.flattened()) }
         return Presets.halves
+    }
+
+    /// Sets the snap modifier. If it was the span key, the span key takes the old modifier, so the two never match.
+    public mutating func setModifier(_ key: ModifierKey) {
+        if key == spanModifier { spanModifier = modifier }
+        modifier = key
+    }
+
+    /// Sets the span key. If it was the snap modifier, the modifier takes the old span key, so the two never match.
+    public mutating func setSpanModifier(_ key: ModifierKey) {
+        if key == modifier { modifier = spanModifier }
+        spanModifier = key
     }
 
     private struct DisplayKey: CodingKey {

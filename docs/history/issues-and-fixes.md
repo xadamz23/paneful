@@ -157,3 +157,21 @@ All in commit `4aaf0d5`:
 - **Display picker after Cancel.** It kept showing the newly picked display after Cancel refused the switch, so Save would have written to the wrong display. Fix: redraw it with `objectWillChange.send()`.
 - **Save order.** Saving the gap first moved windows in about-to-be-removed zones. Fix: save the layout first, then the gap.
 - **A stale editor.** Changes made from the menu while the editor was open could be overwritten by Save. Fix: remember the gap as loaded, and reload when the window comes back to the front with no unsaved edits.
+
+---
+
+## Span zones
+
+### 18. A span's edge came apart *(code review, critical)*
+- **Symptom (predicted, then confirmed with probe tests):** in 2 × 2, a window spanning the top row. Resizing the bottom-right window's top edge moved only the right column's divider. The span's rect (the union of its zones) then grew past the left column's divider and overlapped the bottom-left window until Reset. A column hitting its 100 pt minimum while the other didn't had the same effect.
+- **Root cause:** a span's bottom edge sits on two independent dividers, one per column. Nothing tied them together:
+  - a neighbour's or stacked window's resize moved just one of them;
+  - an uneven clamp left them at different heights.
+- **Fix:** `Arrangement.moveEdge` collects every divider tied to the moved one through a tiled span's edge (`linkedDividers`) and moves them all. If any is clamped, it moves them all back to where the most-clamped one stopped, so a span's edges stay straight. `fit` goes through `moveEdge`, so refusing windows get the same treatment.
+- **Tests:** `neighbourResizeKeepsTheSpanStraight`, `stackedWindowMovingTheSpansOuterEdgeMovesAllOfIt`, `unevenClampKeepsTheSpanStraight`.
+
+### 19. The span anchored one zone too far *(code review)*
+- **Symptom (predicted):** with Shift+Option held before pressing, a fast drag anchored the span on the zone the cursor had reached, not the one pressed on.
+- **Root cause:** a move is only recognised once the window's reported frame changes, which lags about 37 mouse events behind (issue 9). The anchor was taken at that point.
+- **Fix:** `DragMonitor` remembers where the press happened, and anchors there when the span key is held from the start.
+

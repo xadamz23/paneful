@@ -16,6 +16,7 @@ The choices that shape Paneful, and why we made them. The full design is in the 
 | **A visual editor, presets you can tweak, and nothing applied until Save** | The editor is only a preview until you click Save. Edited layouts are named "Custom". |
 | **A window dragged out of its zone gets back its pre-snap size** | It's restored when you let go, not mid-drag. The top edge stays where you dropped it, and the spot you grabbed stays under the cursor. Moving a window between zones keeps its original size. |
 | **An ultrawide preset whose middle is exactly 1440 pt** | "Thirds · 1440 middle" is offered only on displays at least twice as wide as tall. Its fractions are computed for the display and gap when it's offered. |
+| **Span zones with a second key, as a block of whole zones** | Shift+Option-drag covers the anchor zone and the one under the cursor, never half a zone. A span is only where the window sits: the saved layout doesn't change, and a span whose zone is removed untiles its window. |
 
 ## Architecture decisions
 
@@ -29,7 +30,7 @@ The choices that shape Paneful, and why we made them. The full design is in the 
   - The app target, `Paneful`, only talks to macOS, and is checked by hand.
   - This split is what let most bugs be pinned down with a failing test.
 - **One unit talks to the Accessibility API** (`WindowAccess`). Every Accessibility quirk we found is handled in one place.
-- **Windows are matched to zones by ID**, through `Arrangement<AXUIElement>`. That's why zone IDs must never be reused (issue 14).
+- **Windows are matched to zones by ID**, as a set per window (one zone, or a span), through `Arrangement<AXUIElement>`. That's why zone IDs must never be reused (issue 14).
 - **Presets are static fractions, with one exception.** `Presets.available(for:gap:)` adds the computed ultrawide preset, so the menu and the editor both list presets through it rather than `Presets.all`.
 - **Settings are forgiving.** A missing, corrupt, partial or out-of-range settings file falls back field by field. A single bad saved layout no longer resets the others. An invalid layout falls back to Halves.
 
