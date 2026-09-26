@@ -145,6 +145,28 @@ import Testing
         #expect(arrangement.zones(of: "x") == [4])
     }
 
+    @Test func splittingTheWindowsOwnHalfCollapsesThatHalf() {
+        var arrangement = halves()
+        arrangement.split(1, dropping: "x", intoTop: false, in: screen, gap: 0, minSize: 100)
+        #expect(arrangement.split(2, dropping: "x", intoTop: false, in: screen, gap: 0, minSize: 100) == 3)
+        #expect(arrangement.working.zoneIDs == [0, 1, 3])
+        let rects = arrangement.rects(in: screen, gap: 0)
+        #expect(rects[1]!.height == 600)
+        #expect(rects[3]!.height == 200)
+        #expect(arrangement.zones(of: "x") == [3])
+    }
+
+    @Test func anOlderHalfCollapsesIntoTheNewHalf() {
+        var arrangement = halves()
+        arrangement.split(1, dropping: "x", intoTop: false, in: screen, gap: 0, minSize: 100)
+        #expect(arrangement.split(1, dropping: "x", intoTop: true, in: screen, gap: 0, minSize: 100) == 1)
+        #expect(arrangement.working.zoneIDs == [0, 1, 3])
+        let rects = arrangement.rects(in: screen, gap: 0)
+        #expect(rects[1]!.height == 200)
+        #expect(rects[3]!.height == 600)
+        #expect(arrangement.zones(of: "x") == [1])
+    }
+
     @Test func zoneIDsAreNeverReused() {
         var arrangement = halves()
         arrangement.assign("a", to: 0)

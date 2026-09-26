@@ -46,7 +46,7 @@ Adam chose:
 
 ## Where it stands
 
-- All three spec phases are done and merged to `main`, plus six follow-ups: the ultrawide preset, restoring a window's size on drag-out, spanning a window across zones, resetting a display once its last tiled window leaves, moving windows between zones by keyboard and filling empty zones, and splitting a zone on drop. There are 167 unit tests, all passing.
+- All three spec phases are done and merged to `main`, plus six follow-ups: the ultrawide preset, restoring a window's size on drag-out, spanning a window across zones, resetting a display once its last tiled window leaves, moving windows between zones by keyboard and filling empty zones, and splitting a zone on drop. There are 169 unit tests, all passing.
 - It's installed at `/Applications/Paneful.app`, signed with a self-signed "Paneful Dev" certificate.
 - Settings live in `~/Library/Application Support/Paneful/settings.json`.
 - macOS's own window tiling is turned off (System Settings › Desktop & Dock), because it conflicts with Paneful.
