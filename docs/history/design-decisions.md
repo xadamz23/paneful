@@ -19,6 +19,7 @@ The choices that shape Paneful, and why we made them. The full design is in the 
 | **Span zones with a second key, as a block of whole zones** | Shift+Option-drag covers the anchor zone and the one under the cursor, never half a zone. A span is only where the window sits: the saved layout doesn't change, and a span whose zone is removed untiles its window. |
 | **A display with no tiled windows goes back to its saved layout** | Once its last window is dragged out, moved to another display, closed or minimised, the next window lands in a saved-size zone without a Reset. Moving the only window to another zone on the same display keeps the adjusted sizes, because the zones never become empty. |
 | **Keyboard moves with Ctrl+Option + arrows, within one display** | Moving a window one zone over shouldn't need the mouse. Keys are spatial (the zone physically left, right, above or below), stop at the display's edge rather than wrapping or changing display, and a span moves into the single zone past its edge. The keys are fixed, not a setting. |
+| **Split on drop with a third key, top/bottom halves, working copy only** | Shift+Control-drag (Split Key ▸) splits the zone under the cursor into equal top and bottom halves, and a window already there moves to the other half, so two windows can share a zone without editing the layout. The halves disappear once both are empty, and a layout change, display change or Reset untiles windows in them. Halves under 100 pt give a plain snap. |
 | **Fill Zones fills empty zones only, nearest first** | After a reboot or reconnect, one click tiles the untiled windows with the least movement. Tiled windows and leftover windows are left alone, so nothing is rearranged unexpectedly. |
 
 ## Architecture decisions
@@ -34,7 +35,7 @@ The choices that shape Paneful, and why we made them. The full design is in the 
   - This split is what let most bugs be pinned down with a failing test.
 - **One unit talks to the Accessibility API** (`WindowAccess`). Every Accessibility quirk we found is handled in one place.
 - **Hotkeys use Carbon `RegisterEventHotKey`**, not an `NSEvent` key monitor or an event tap: no extra permission, and the keystroke is swallowed so apps never see it.
-- **Windows are matched to zones by ID**, as a set per window (one zone, or a span), through `Arrangement<AXUIElement>`. That's why zone IDs must never be reused (issue 14).
+- **Windows are matched to zones by ID**, as a set per window (one zone, or a span), through `Arrangement<AXUIElement>`. That's why zone IDs must never be reused (issue 14). Each `Arrangement` has its own counter for split-drop zones, and rebasing or Reset untiles windows in them, because a new saved layout may reuse those IDs.
 - **Presets are static fractions, with one exception.** `Presets.available(for:gap:)` adds the computed ultrawide preset, so the menu and the editor both list presets through it rather than `Presets.all`.
 - **Settings are forgiving.** A missing, corrupt, partial or out-of-range settings file falls back field by field. A single bad saved layout no longer resets the others. An invalid layout falls back to Halves.
 
