@@ -14,6 +14,16 @@ extension Node {
         removingWithoutFlattening(zone)?.flattened()
     }
 
+    /// The zone just before `zone` in its split, if that sibling is a zone rather than a split.
+    func zone(before zone: ZoneID) -> ZoneID? {
+        guard case .split(_, let children, _) = self else { return nil }
+        if let index = children.firstIndex(of: .zone(zone)) {
+            guard index > 0, case .zone(let id) = children[index - 1] else { return nil }
+            return id
+        }
+        return children.lazy.compactMap { $0.zone(before: zone) }.first
+    }
+
     private func removingWithoutFlattening(_ zone: ZoneID) -> Node? {
         switch self {
         case .zone(let id):

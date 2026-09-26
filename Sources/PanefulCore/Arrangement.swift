@@ -1,15 +1,21 @@
 import CoreGraphics
 
 /// One display's live state: a working copy of the saved layout (which linked resizing adjusts)
-/// plus which zones each window covers: one zone, or a span of several. The saved layout itself is never changed here.
+/// plus which zones each window covers: one zone, or a span of several. Split drops add zones to the working tree
+/// only. The saved layout itself is never changed here.
 public struct Arrangement<Window: Hashable> {
     public let saved: Layout
     public private(set) var working: Node
     private var zonesOf: [Window: Set<ZoneID>] = [:]
+    /// Zones added by split drops. They exist only in the working tree.
+    private var splitZones: Set<ZoneID> = []
+    /// Only ever goes up, so a split never reuses a zone ID.
+    private var nextZoneID: ZoneID
 
     public init(saved: Layout) {
         self.saved = saved
         self.working = saved.root
+        self.nextZoneID = (saved.root.zoneIDs.max() ?? -1) + 1
     }
 
     public var tiledWindows: [Window] { Array(zonesOf.keys) }
@@ -25,6 +31,7 @@ public struct Arrangement<Window: Hashable> {
     public mutating func assign(_ window: Window, to zones: Set<ZoneID>) {
         guard !zones.isEmpty, zones.isSubset(of: working.zoneIDs) else { return }
         zonesOf[window] = zones
+        collapseEmptySplits()
     }
 
     public mutating func assign(_ window: Window, to zone: ZoneID) {
@@ -34,11 +41,14 @@ public struct Arrangement<Window: Hashable> {
     /// Untiles `window`. Once no windows are left, the working tree goes back to the saved layout.
     public mutating func remove(_ window: Window) {
         zonesOf[window] = nil
-        if zonesOf.isEmpty { reset() }
+        if zonesOf.isEmpty { reset() } else { collapseEmptySplits() }
     }
 
-    /// Restores the saved layout's boundaries; windows keep their zones.
+    /// Restores the saved layout's boundaries, dropping split halves: windows in a split-created zone are untiled,
+    /// the others keep their zones.
     public mutating func reset() {
+        zonesOf = zonesOf.filter { $0.value.isDisjoint(with: splitZones) }
+        splitZones = []
         working = saved.root
     }
 
@@ -130,10 +140,44 @@ public struct Arrangement<Window: Hashable> {
         return moved
     }
 
-    /// A fresh arrangement for `saved`, keeping windows whose zones all still exist in it.
+    /// Splits `zone` into equal top and bottom halves and puts `window` in one. `zone` keeps the top half, and a new
+    /// zone takes the bottom. Other windows in exactly `zone` move to the other half, and spans over it cover both.
+    /// Returns the half `window` landed in, or nil (changing nothing) if a half would be shorter than `minSize`.
+    @discardableResult
+    public mutating func split(_ zone: ZoneID, dropping window: Window, intoTop: Bool, in frame: CGRect, gap: CGFloat, minSize: CGFloat) -> ZoneID? {
+        guard working.zoneIDs.contains(zone) else { return nil }
+        let newZone = nextZoneID
+        let node = working.splitting(zone, along: .horizontal, newZone: newZone)
+        let rects = Geometry.zoneRects(node, in: frame, gap: gap)
+        guard let top = rects[zone], let bottom = rects[newZone], min(top.height, bottom.height) >= minSize else { return nil }
+        working = node
+        nextZoneID += 1
+        splitZones.insert(newZone)
+        let (landing, other) = intoTop ? (zone, newZone) : (newZone, zone)
+        for (tiled, zones) in zonesOf where tiled != window && zones.contains(zone) {
+            zonesOf[tiled] = zones == [zone] ? [other] : zones.union([newZone])
+        }
+        zonesOf[window] = [landing]
+        collapseEmptySplits()
+        return landing
+    }
+
+    /// Removes each split-created zone that is empty along with the zone before it; the zone before takes its space.
+    private mutating func collapseEmptySplits() {
+        let covered = Set(zonesOf.values.joined())
+        while let zone = splitZones.first(where: { zone in
+            !covered.contains(zone) && working.zone(before: zone).map { !covered.contains($0) } == true
+        }), let node = working.removing(zone) {
+            working = node
+            splitZones.remove(zone)
+        }
+    }
+
+    /// A fresh arrangement for `saved`, keeping windows whose zones all still exist in it. Windows in split-created
+    /// zones are dropped, since `saved` may use those IDs for other zones.
     public func rebased(on saved: Layout) -> Arrangement {
         var result = Arrangement(saved: saved)
-        for (window, zones) in zonesOf { result.assign(window, to: zones) }
+        for (window, zones) in zonesOf where zones.isDisjoint(with: splitZones) { result.assign(window, to: zones) }
         return result
     }
 
