@@ -21,6 +21,7 @@ import Testing
         #expect(settings.gap == 8)
         #expect(settings.modifier == .shift)
         #expect(settings.spanModifier == .option)
+        #expect(settings.splitModifier == .control)
         #expect(settings.layouts.isEmpty)
     }
 
@@ -38,6 +39,7 @@ import Testing
         #expect(settings.gap == 12)
         #expect(settings.modifier == .shift)
         #expect(settings.spanModifier == .option)
+        #expect(settings.splitModifier == .control)
         #expect(settings.layouts.isEmpty)
     }
 
@@ -74,9 +76,47 @@ import Testing
 
     @Test func settingAnUnusedKeyDoesNotSwap() {
         var settings = Settings()
+        settings.setSpanModifier(.command)
+        #expect(settings.spanModifier == .command)
+        #expect(settings.modifier == .shift)
+        #expect(settings.splitModifier == .control)
+    }
+
+    @Test func unknownSplitKeyFallsBackToControl() throws {
+        #expect(try store(containing: #"{"splitModifier": "hyper"}"#).load().splitModifier == .control)
+    }
+
+    @Test func splitKeyEqualToAnotherKeyOnLoadFallsBack() throws {
+        let fromModifier = try store(containing: #"{"modifier": "control"}"#).load()
+        #expect(fromModifier.modifier == .control)
+        #expect(fromModifier.spanModifier == .option)
+        #expect(fromModifier.splitModifier == .shift)
+        let fromSpan = try store(containing: #"{"spanModifier": "control"}"#).load()
+        #expect(fromSpan.spanModifier == .control)
+        #expect(fromSpan.splitModifier == .option)
+    }
+
+    @Test func settingTheSplitKeyToTheModifierSwapsThem() {
+        var settings = Settings()
+        settings.setSplitModifier(.shift)
+        #expect(settings.splitModifier == .shift)
+        #expect(settings.modifier == .control)
+        #expect(settings.spanModifier == .option)
+    }
+
+    @Test func settingTheSpanKeyToTheSplitKeySwapsThem() {
+        var settings = Settings()
         settings.setSpanModifier(.control)
         #expect(settings.spanModifier == .control)
+        #expect(settings.splitModifier == .option)
         #expect(settings.modifier == .shift)
+    }
+
+    @Test func settingTheModifierToTheSplitKeySwapsThem() {
+        var settings = Settings()
+        settings.setModifier(.control)
+        #expect(settings.modifier == .control)
+        #expect(settings.splitModifier == .shift)
     }
 
     @Test func gapIsClamped() throws {
