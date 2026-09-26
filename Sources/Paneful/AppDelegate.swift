@@ -95,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(parent("Modifier", keyMenu(selected: tiling.settings.modifier, action: #selector(chooseModifier(_:)))))
         menu.addItem(parent("Span Key", keyMenu(selected: tiling.settings.spanModifier, action: #selector(chooseSpanModifier(_:)))))
+        menu.addItem(parent("Split Key", keyMenu(selected: tiling.settings.splitModifier, action: #selector(chooseSplitModifier(_:)))))
 
         menu.addItem(item("Fill Zones", #selector(fillZones)))
         menu.addItem(item("Reset Arrangement", #selector(resetArrangement)))
@@ -148,6 +149,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func chooseSpanModifier(_ sender: NSMenuItem) {
         guard let modifier = sender.representedObject as? ModifierKey else { return }
         tiling.setSpanModifier(modifier)
+    }
+
+    @objc private func chooseSplitModifier(_ sender: NSMenuItem) {
+        guard let modifier = sender.representedObject as? ModifierKey else { return }
+        tiling.setSplitModifier(modifier)
     }
 
     @objc private func resetArrangement() {

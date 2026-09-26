@@ -4,15 +4,17 @@ import PanefulCore
 /// Watches global mouse events and turns each press into one gesture:
 /// - moving a window: holding the modifier shows its display's zones. Releasing over one snaps the window there;
 ///   releasing anywhere else untiles it. Holding the span key as well stretches the target from the zone it was
-///   pressed over (the anchor) to the zone under the cursor.
+///   pressed over (the anchor) to the zone under the cursor. Holding the split key instead splits the zone under the
+///   cursor into top and bottom halves, and the window drops into the half under the cursor.
 /// - resizing a tiled window: the dividers under the dragged edges follow live, resizing the neighbouring windows.
 final class DragMonitor {
     private enum Gesture {
         case none
         /// Pressed; waiting for one of the candidate windows to move or resize.
         case pending(candidates: [(window: AXUIElement, frame: CGRect)], pressedAt: CGPoint)
-        /// `anchor` is where the span key went down, kept only while it's held on that display.
-        case moving(AXUIElement, target: (display: Display, zones: Set<ZoneID>)?, anchor: (displayID: String, zone: ZoneID)?)
+        /// `anchor` is where the span key went down, kept only while it's held on that display. `splitTop` is set
+        /// when the drop splits `zones` (a single zone): true for its top half.
+        case moving(AXUIElement, target: (display: Display, zones: Set<ZoneID>, splitTop: Bool?)?, anchor: (displayID: String, zone: ZoneID)?)
         /// The tracker decides which edges the user is dragging, so only those move dividers.
         case resizing(AXUIElement, tracker: ResizeTracker, linked: Bool)
     }
@@ -116,10 +118,19 @@ final class DragMonitor {
         }
         let rects = tiling.zoneRects(for: display)
         let zone = Geometry.zone(at: cursor, in: rects, gap: tiling.gap)
+        // The split key wins over the span key. A zone too small to split falls through to a plain target.
+        if flags.contains(tiling.settings.splitModifier.flags), let zone, let rect = rects[zone] {
+            let top = cursor.y < rect.midY
+            if let preview = tiling.splitPreview(of: zone, top: top, dropping: window, on: display) {
+                gesture = .moving(window, target: (display: display, zones: [zone], splitTop: top), anchor: nil)
+                overlay.show(on: display, rects: preview.rects, highlighted: preview.landing)
+                return
+            }
+        }
         // The anchor is set the first time the span key is seen held, and dropped when it's released.
         let anchor = flags.contains(tiling.settings.spanModifier.flags) ? spanAnchor(on: display) ?? zone : nil
         let zones = zone.map { zone in anchor.map { Geometry.span(from: $0, to: zone, in: rects) } ?? [zone] }
-        gesture = .moving(window, target: zones.map { (display: display, zones: $0) }, anchor: anchor.map { (displayID: display.id, zone: $0) })
+        gesture = .moving(window, target: zones.map { (display: display, zones: $0, splitTop: nil) }, anchor: anchor.map { (displayID: display.id, zone: $0) })
         overlay.show(on: display, rects: rects, highlighted: zones.flatMap { Geometry.union(of: $0, in: rects) })
     }
 
@@ -144,7 +155,11 @@ final class DragMonitor {
         switch finished {
         case .moving(let window, let target?, _):
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [tiling] in
-                tiling.snap(window, to: target.zones, on: target.display)
+                if let top = target.splitTop, let zone = target.zones.first {
+                    tiling.snap(window, splitting: zone, top: top, on: target.display)
+                } else {
+                    tiling.snap(window, to: target.zones, on: target.display)
+                }
             }
         case .moving(let window, nil, _):
             let releasedAt = cursor

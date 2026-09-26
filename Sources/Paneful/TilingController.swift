@@ -55,6 +55,29 @@ final class TilingController {
         WindowAccess.setFrame(rect, of: window, within: display.visibleFrame)
     }
 
+    /// What a split drop of `window` onto `zone` would look like: the display's zone rects after the split and the
+    /// half it would land in. Nil if the zone is too small to split.
+    func splitPreview(of zone: ZoneID, top: Bool, dropping window: AXUIElement, on display: Display) -> (rects: [ZoneID: CGRect], landing: CGRect)? {
+        guard var arrangement = arrangements[display.id],
+              let landing = arrangement.split(zone, dropping: window, intoTop: top, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize)
+        else { return nil }
+        let rects = arrangement.rects(in: display.visibleFrame, gap: gap)
+        return rects[landing].map { (rects, $0) }
+    }
+
+    /// Splits `zone` into top and bottom halves and tiles `window` in one; windows already in the zone move to the
+    /// other half. A zone too small to split gets a plain snap.
+    func snap(_ window: AXUIElement, splitting zone: ZoneID, top: Bool, on display: Display) {
+        guard var arrangement = arrangements[display.id] else { return }
+        guard arrangement.split(zone, dropping: window, intoTop: top, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) != nil else {
+            return snap(window, to: [zone], on: display)
+        }
+        if !isTiled(window) { sizesBeforeSnap[window] = WindowAccess.frame(of: window)?.size }
+        for id in arrangements.keys where id != display.id { arrangements[id]?.remove(window) }
+        arrangements[display.id] = arrangement
+        refit(display)
+    }
+
     func untile(_ window: AXUIElement) {
         for id in arrangements.keys { arrangements[id]?.remove(window) }
     }
@@ -206,6 +229,11 @@ final class TilingController {
 
     func setSpanModifier(_ modifier: ModifierKey) {
         settings.setSpanModifier(modifier)
+        save()
+    }
+
+    func setSplitModifier(_ modifier: ModifierKey) {
+        settings.setSplitModifier(modifier)
         save()
     }
 
