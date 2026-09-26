@@ -45,7 +45,7 @@ Success:
 
 **Zone IDs:**
 - Each `Arrangement` has its own ID counter. It starts at the saved layout's highest ID + 1 and only ever goes up, so a split never reuses an ID.
-- The arrangement remembers which zones it created. `reset()` forgets them.
+- The arrangement remembers which zones it created. `reset()` (Reset Arrangement) forgets them and untiles any window covering one, the same as `rebased(on:)` below.
 
 **Layout and display changes:**
 - `rebased(on:)` untiles any window that covers a split-created zone. This is because the new saved layout could use that ID for a different zone.
