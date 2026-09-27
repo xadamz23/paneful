@@ -2,7 +2,7 @@
 
 Paneful is a personal macOS menu bar window manager, built to replace BentoBox. You hold a modifier (Shift by default) while dragging a window, zones appear, and you drop the window into one. Windows that share an edge resize together. Each display has its own layout, which you can edit visually.
 
-It was built between 2026-09-24 and 2026-09-25 by Adam and Claude (Claude Code), in three phases.
+It was built between 2026-09-24 and 2026-09-27 by Adam and Claude (Claude Code): three phases, then a series of follow-ups.
 
 | File | What's in it |
 |---|---|
@@ -10,7 +10,7 @@ It was built between 2026-09-24 and 2026-09-25 by Adam and Claude (Claude Code),
 | [macos-gotchas.md](macos-gotchas.md) | Platform and toolchain lessons: Accessibility API, SwiftPM without Xcode, SwiftUI, signing |
 | [design-decisions.md](design-decisions.md) | Key design choices and why, including deliberate deviations from the spec |
 | [../superpowers/specs/2026-09-24-paneful-design.md](../superpowers/specs/2026-09-24-paneful-design.md) | The design spec everything was built from |
-| [../superpowers/specs/](../superpowers/specs/) | The follow-up specs (span zones; keyboard moves and Fill Zones) |
+| [../superpowers/specs/](../superpowers/specs/) | The follow-up specs (span zones; keyboard moves and Fill Zones; split on drop) |
 | [../superpowers/plans/](../superpowers/plans/) | The implementation plans: one per phase, then one per follow-up |
 
 ## How we got here
@@ -119,6 +119,11 @@ These are accepted for now, and none are blockers:
   - **If another app already owns Ctrl+Option + an arrow,** Paneful's hotkey silently fails to register and does nothing. Nothing reports why.
   - **A window that can't shrink to its zone** after a keyboard move or Fill Zones isn't grown to fit, the same as after a drop. It overlaps its neighbour until the next resize.
   - **Fill Zones can take about a second** if an app is hung, because each window's checks wait up to 0.25 s.
+  - **Split halves don't survive a layout change, display reconfiguration or Reset.** Windows in them are untiled and stay where they are.
+  - **Splitting a half that sits next to empty space** can leave uneven quarters.
+  - **Releasing the split key mid-drag loses the span anchor,** so holding the span key again re-anchors under the cursor.
+  - **Split key plus span key over a zone too small to split** gives a span, not a plain snap.
+  - **A split snap refits the whole display,** not only the two halves.
   - A window that's closed, minimised or untiled by a refit keeps its remembered size (`sizesBeforeSnap`) until Paneful quits. It's a tiny leak, and harmless.
 - **Editor polish:**
   - The prompt says "layout" when only the gap changed.

@@ -203,3 +203,4 @@ All in commit `4aaf0d5`:
   - This is not caused by the split: any snap of a full-height window into a zone just shorter than the screen can hit it.
 - **Fix:** after size → position → size, `WindowAccess.setFrame` reads the frame back. If the window is still taller than the target and its bottom still reaches the screen's bottom, it shrinks it to half height, then sets the target size, then the position. It only does this in that case, so windows that refuse to shrink (a minimum size) aren't nudged on every live-resize step.
 - **Verified:** with the probe (1196 → 1192), then by Adam on the display.
+- **Commit:** `2a587dc`
