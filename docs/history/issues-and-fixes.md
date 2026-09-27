@@ -191,3 +191,15 @@ All in commit `4aaf0d5`:
 - **What:** Fill Zones must only pick up windows on the current Space. It wasn't known whether an app's `kAXWindowsAttribute` includes windows on other Spaces.
 - **Found by:** a throwaway `swiftc` probe comparing each app's Accessibility windows with the on-screen `CGWindowList`. It was run again after Adam moved an Edge window to another Space: Edge then listed no windows.
 - **Outcome:** Accessibility lists only the current Space's windows, so `visibleWindows()` needs no on-screen filter. Recorded in [macos-gotchas.md](macos-gotchas.md).
+
+## Split on drop
+
+### 22. A full-height window on a side display couldn't be resized *(Adam's testing)*
+- **Symptom:** on a PA248QV set to Halves, Edge snapped into the right zone couldn't be resized from the shared vertical edge, from either side. Nothing moved.
+- **Root cause:**
+  - Edge was 1200 pt tall. `setFrame` first moves a window that's off the target display to the display's top-left corner, so Edge's bottom landed exactly on the screen's bottom edge.
+  - In that position Edge ignores a small shrink in height. A probe on the real window showed 1196 → 1192, → 1190 and → 1180 all ignored, while → 1150 worked.
+  - The move to y = 4 then left it 1200 pt tall and hanging 4 pt off the bottom. macOS refuses every resize of such a window, including the user's own edge drags.
+  - This is not caused by the split: any snap of a full-height window into a zone just shorter than the screen can hit it.
+- **Fix:** after size → position → size, `WindowAccess.setFrame` reads the frame back. If the window is still taller than the target and its bottom still reaches the screen's bottom, it shrinks it to half height, then sets the target size, then the position. It only does this in that case, so windows that refuse to shrink (a minimum size) aren't nudged on every live-resize step.
+- **Verified:** with the probe (1196 → 1192), then by Adam on the display.

@@ -99,6 +99,14 @@ enum WindowAccess {
         guard AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue) != .invalidUIElement else { return false }
         AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
         AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+        // A window whose bottom reaches its screen's bottom ignores a small shrink in height (Edge: 1196 to 1192),
+        // and is then left hanging off the screen, where it can't be resized at all. Shrinking a long way first works.
+        if let current = self.frame(of: window), current.height > size.height + 0.5, current.maxY >= bounds.maxY - 0.5 {
+            var half = CGSize(width: size.width, height: size.height / 2)
+            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, AXValueCreate(.cgSize, &half)!)
+            AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sizeValue)
+            AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, positionValue)
+        }
         return true
     }
 

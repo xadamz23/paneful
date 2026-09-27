@@ -6,6 +6,7 @@ Lessons that aren't specific to Paneful's features. Read this before touching wi
 
 - **Moving across displays, check your coordinates.** Accessibility uses a top-left origin on the primary display with y going down. AppKit (`NSScreen`, `NSEvent.mouseLocation`) uses a bottom-left origin with y going up. Paneful converts only at the app boundary, through `Coordinates.flip`, and all core geometry is in Accessibility coordinates. Displays to the left of the primary have negative x.
 - **macOS won't resize a window whose bottom hangs below its screen.** It happens in every app, and every call still reports success. Move the window fully onto the target display first.
+- **A window whose bottom reaches its screen's bottom ignores a small shrink in height (Edge: 1196 → 1192 ignored, → 1150 works).** It's then easily left hanging off the screen. `setFrame` checks the frame afterwards and, if needed, shrinks to half height first (issue 22).
 - **Some apps ignore a resize that comes straight after a move (Ghostty).** Use the order **size → position → size**, the same as Rectangle.
 - **Setters report success even when they did nothing.** Always read the frame back when checking behaviour.
 - **A dragged window's position is reported late.** During a title-bar drag, the Accessibility position lagged about 37 mouse events behind the visible window. Never give up early on "has this window moved?".
