@@ -43,6 +43,7 @@ Adam chose:
 | 2026-09-25 | Auto-reset empty displays | When a display's last tiled window leaves (dragged out, moved to another display, closed or minimised), its arrangement goes back to the saved layout. `Arrangement.remove` resets once no windows are left. Closed windows are only noticed lazily, so `TilingController.forgetClosedWindows` checks them when a window drag starts, before the overlay shows. Moving the only window to another zone on the same display keeps the adjusted sizes. |
 | 2026-09-25 | Keyboard moves and Fill Zones | Ctrl+Option + an arrow moves the focused window to the zone left, right, above or below, on its own display only; at an edge nothing happens, and an untiled window first snaps into the zone under its centre. Carbon hotkeys need no extra permission and are swallowed. "Fill Zones" in the menu puts untiled windows into every display's empty zones, nearest first, leaving extra windows alone. Both go through `snap`, so they behave exactly like a drop. |
 | 2026-09-26 | Split on drop | Holding the split key (Control by default, set in Split Key ▸) as well as the modifier previews the zone under the cursor as top and bottom halves; releasing drops the window into the half under the cursor, and a window already in the zone moves to the other half. The split is only in the working copy: `Arrangement.split` uses its own never-reused ID counter, and a split-created zone collapses into the zone before it once both are empty. Known limitation: a layout change, display reconfiguration or Reset untiles windows in split halves. |
+| 2026-09-27 | Editor polish | Esc and Cmd-W close the editor through the usual Save/Discard/Cancel prompt, which quitting now asks too; the gap is labelled in points; the prompt names what changed (layout, gap or both). A planned warning for hotkeys taken by another app was dropped: a probe showed Carbon can't detect the conflict. |
 
 ## Where it stands
 
@@ -116,7 +117,7 @@ These are accepted for now, and none are blockers:
     - the middle drifts a few points until you pick the preset again;
     - the saved fractions no longer match the ones the Layout menu computes, so the menu shows the layout ticked above the presets, as it does for a Custom layout.
   - **Pre-snap sizes are kept only while Paneful runs.** After a relaunch, dragging a window out leaves it at its zone size.
-  - **If another app already owns Ctrl+Option + an arrow,** Paneful's hotkey silently fails to register and does nothing. Nothing reports why.
+  - **If another app also claims Ctrl+Option + an arrow,** nothing reports it. Carbon only rejects a duplicate when both apps register exclusively, which hotkey apps don't do, and apps using event taps can't be seen at all (see [macos-gotchas.md](macos-gotchas.md)).
   - **A window that can't shrink to its zone** after a keyboard move or Fill Zones isn't grown to fit, the same as after a drop. It overlaps its neighbour until the next resize.
   - **Fill Zones can take about a second** if an app is hung, because each window's checks wait up to 0.25 s.
   - **Split halves don't survive a layout change, display reconfiguration or Reset.** Windows in them are untiled and stay where they are.
@@ -126,11 +127,7 @@ These are accepted for now, and none are blockers:
   - **A split snap refits the whole display,** not only the two halves.
   - A window that's closed, minimised or untiled by a refit keeps its remembered size (`sizesBeforeSnap`) until Paneful quits. It's a tiny leak, and harmless.
 - **Editor polish:**
-  - The prompt says "layout" when only the gap changed.
-  - "px" is really points.
   - A gap from the editor that isn't on the Gap menu leaves nothing ticked there.
-  - Quitting with unsaved edits drops them without asking.
-  - There's no Cmd-W or Esc to close the window, because it's a menu bar app with no main menu.
 - **Minor timing oddities:**
   - A click within 50 ms of a snap finishing could be misread.
   - A zone can come out at 99 pt instead of 100 because of rounding.

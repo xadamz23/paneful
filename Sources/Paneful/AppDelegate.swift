@@ -6,7 +6,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let tiling = TilingController(store: SettingsStore(url: SettingsStore.defaultURL))
     private lazy var dragMonitor = DragMonitor(tiling: tiling, overlay: OverlayController())
     private lazy var hotKeys = HotKeys { [tiling = self.tiling] edge in tiling.moveFocusedWindow(toward: edge) }
-    private lazy var editor = EditorWindowController(tiling: tiling)
+    /// Created on first use, so quitting doesn't build it just to ask about unsaved edits.
+    private var editor: EditorWindowController?
     private var statusItem: NSStatusItem!
     private var trustTimer: Timer?
     private var wasTrusted: Bool?
@@ -86,7 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let gapMenu = NSMenu()
         for gap in Self.gapChoices {
-            let choice = item("\(Int(gap)) px", #selector(chooseGap(_:)))
+            let choice = item("\(Int(gap)) pt", #selector(chooseGap(_:)))
             choice.representedObject = gap
             choice.state = gap == tiling.settings.gap ? .on : .off
             gapMenu.addItem(choice)
@@ -177,7 +178,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openEditor() {
+        let editor = self.editor ?? EditorWindowController(tiling: tiling)
+        self.editor = editor
         editor.show()
+    }
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        editor?.confirmQuit() == false ? .terminateCancel : .terminateNow
     }
 
     @objc private func quit() {

@@ -62,7 +62,12 @@ final class EditorModel: ObservableObject {
     func confirmDiscardingChanges() -> Bool {
         guard hasChanges else { return true }
         let alert = NSAlert()
-        alert.messageText = "Save changes to the layout for \(display?.name ?? "this display")?"
+        let layout = "the layout for \(display?.name ?? "this display")"
+        switch (draft.isDirty, gap != loadedGap) {
+        case (true, true): alert.messageText = "Save changes to \(layout) and the gap?"
+        case (true, false): alert.messageText = "Save changes to \(layout)?"
+        default: alert.messageText = "Save the new gap?"
+        }
         alert.addButton(withTitle: "Save")
         alert.addButton(withTitle: "Discard")
         alert.addButton(withTitle: "Cancel")

@@ -40,7 +40,7 @@ struct EditorView: View {
                 Text("Gap")
                 Slider(value: $model.gap, in: 0...40, step: 1)
                     .frame(maxWidth: 240)
-                Text("\(Int(model.gap)) px")
+                Text("\(Int(model.gap)) pt")
                     .monospacedDigit()
             }
 

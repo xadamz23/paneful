@@ -27,6 +27,7 @@ Lessons that aren't specific to Paneful's features. Read this before touching wi
 ## Hotkeys
 
 - **Carbon `RegisterEventHotKey` still works** on macOS 27 from a SwiftPM-built app. It needs no Accessibility or Input Monitoring permission, and the keystroke is consumed. VoiceOver also uses Ctrl+Option, but only while it's on.
+- **A hotkey conflict can't be detected.** Registering a combo another process holds still returns `noErr`. Only when both sides pass `kEventHotKeyExclusive` does the second get `eventHotKeyExistsErr` (−9878), and a non-exclusive holder is invisible even to an exclusive registration. Tested with a probe against the running Paneful and against a second probe process. Apps using event taps don't register at all.
 
 ## Debugging the app
 
@@ -47,6 +48,7 @@ Lessons that aren't specific to Paneful's features. Read this before touching wi
 - **SwiftUI macros don't compile**, because the macro plugin ships only with Xcode. That rules out `@State`, `@Observable`, `@Entry` and `#Preview`.
 - **What does work:** `ObservableObject` with `@Published` and `@ObservedObject`, plus `@GestureState`. Keep view state in a model object.
 - **Menu bar app windows need `NSApp.activate()`** to come to the front, because the app is `LSUIElement`.
+- **With no main menu, Cmd-W and Esc do nothing.** The editor's `NSWindow` subclass handles them itself: `cancelOperation(_:)` for Esc and `performKeyEquivalent(with:)` for Cmd-W, both calling `performClose`, so `windowShouldClose` still asks about unsaved edits.
 - **A `Picker` bound through a custom `Binding`** that refuses a change keeps showing the refused value until something publishes. Call `objectWillChange.send()`, deferred to the next run loop.
 
 ## Signing and Accessibility permission
