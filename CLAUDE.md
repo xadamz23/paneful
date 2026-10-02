@@ -75,5 +75,5 @@ The ideas that span several files:
 
 ## Workflow conventions
 
-- Specs live in `docs/superpowers/specs/` and one plan per feature in `docs/superpowers/plans/`. Work happens on a feature branch and is merged to `main` locally with `--ff-only`. There's no remote.
+- Specs live in `docs/superpowers/specs/` and one plan per feature in `docs/superpowers/plans/`. Work happens on a feature branch and is merged to `main` locally with `--ff-only`. `main` tracks `origin` on GitHub (`xadamz23/paneful`); push only when Adam asks.
 - In Adam's terminal, text written just before a multiple-choice question can be hidden, so put content to review in the question's preview.
