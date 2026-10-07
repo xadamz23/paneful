@@ -48,7 +48,7 @@ Adam chose:
 
 ## Where it stands
 
-- All three spec phases are done and merged to `main`, plus seven follow-ups: the ultrawide preset, restoring a window's size on drag-out, spanning a window across zones, resetting a display once its last tiled window leaves, moving windows between zones by keyboard and filling empty zones, splitting a zone on drop, and keeping each Space's arrangements separate. There are 179 unit tests, all passing.
+- All three spec phases are done and merged to `main`, plus seven follow-ups: the ultrawide preset, restoring a window's size on drag-out, spanning a window across zones, resetting a display once its last tiled window leaves, moving windows between zones by keyboard and filling empty zones, splitting a zone on drop, and keeping each Space's arrangements separate. There are 180 unit tests, all passing.
 - It's installed at `/Applications/Paneful.app`, signed with a self-signed "Paneful Dev" certificate.
 - Settings live in `~/Library/Application Support/Paneful/settings.json`.
 - macOS's own window tiling is turned off (System Settings › Desktop & Dock), because it conflicts with Paneful.
@@ -104,7 +104,7 @@ One collaboration quirk: in Adam's terminal, text written just before a multiple
 These are accepted for now, and none are blockers:
 
 - **Things Paneful doesn't notice:**
-  - A window moved to another **Space** through Mission Control stays tiled on its old Space until it's dropped into a zone somewhere. Until then, a resize on the old Space can still move it.
+  - A window moved to another **Space** through Mission Control stays tiled on its old Space until it's dropped into a zone or dragged out somewhere. Until then, a resize on the old Space can still move it.
   - With **"Displays have separate Spaces"** turned on, the active display's Space is used for every display.
   - A **minimised** window stays untiled after it's restored, so you re-snap it.
   - A tiled window moved to another display *without dragging* (from a Window menu, say) stays tiled, and a later resize can jump its dividers to their limits. A keyboard move checks where the window really is, so it treats such a window as untiled there and never sends it back.

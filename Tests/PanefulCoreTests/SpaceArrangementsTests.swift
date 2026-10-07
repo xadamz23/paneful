@@ -82,6 +82,13 @@ import Testing
         #expect(arrangements.location(of: "a", on: 7) == nil)
     }
 
+    @Test func isTiledLooksAtEverySpace() {
+        var arrangements = SpaceArrangements<String>()
+        tile("a", in: 1, at: x, &arrangements)
+        #expect(arrangements.isTiled("a"))
+        #expect(!arrangements.isTiled("b"))
+    }
+
     @Test func rebaseChangesTheDisplayOnEverySpace() {
         var arrangements = SpaceArrangements<String>()
         tile("a", in: 0, at: x, &arrangements)

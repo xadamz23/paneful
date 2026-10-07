@@ -50,7 +50,7 @@ final class TilingController {
         var arrangement = liveArrangement(key)
         guard let rect = Geometry.union(of: zones, in: arrangement.rects(in: display.visibleFrame, gap: gap)) else { return }
         // Moving between zones keeps the size from before the first snap.
-        if !isTiled(window) { sizesBeforeSnap[window] = WindowAccess.frame(of: window)?.size }
+        if !arrangements.isTiled(window) { sizesBeforeSnap[window] = WindowAccess.frame(of: window)?.size }
         // Only other displays and Spaces untile it: assign replaces its zones here, so moving a display's only
         // window between zones doesn't empty the display and reset it.
         arrangements.untile(window, except: key)
@@ -77,7 +77,7 @@ final class TilingController {
         guard arrangement.split(zone, dropping: window, intoTop: top, in: display.visibleFrame, gap: gap, minSize: Self.minZoneSize) != nil else {
             return snap(window, to: [zone], on: display)
         }
-        if !isTiled(window) { sizesBeforeSnap[window] = WindowAccess.frame(of: window)?.size }
+        if !arrangements.isTiled(window) { sizesBeforeSnap[window] = WindowAccess.frame(of: window)?.size }
         arrangements.untile(window, except: key)
         arrangements.store(arrangement, at: key)
         refit(key)
@@ -90,7 +90,8 @@ final class TilingController {
     /// A tiled window was dragged out of its zone and let go at `point`: untile it and give it back the size it
     /// had before it was snapped, keeping the grabbed spot under the cursor and the window on the display.
     func dragOut(_ window: AXUIElement, releasedAt point: CGPoint) {
-        guard isTiled(window) else { return }
+        // Tiled on any Space: a window carried to this Space must still be untiled from the one it left.
+        guard arrangements.isTiled(window) else { return }
         untile(window)
         guard let size = sizesBeforeSnap.removeValue(forKey: window),
               let current = WindowAccess.frame(of: window),

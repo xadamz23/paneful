@@ -46,6 +46,11 @@ public struct SpaceArrangements<Window: Hashable> {
         return nil
     }
 
+    /// Whether `window` is tiled on any Space.
+    public func isTiled(_ window: Window) -> Bool {
+        stored.values.contains { $0.zones(of: window) != nil }
+    }
+
     /// Rebases `display`'s arrangement on every Space on `saved` (see `Arrangement.rebased(on:)`).
     public mutating func rebase(display: String, on saved: Layout) {
         for key in stored.keys where key.display == display {
