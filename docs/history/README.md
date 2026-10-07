@@ -44,10 +44,11 @@ Adam chose:
 | 2026-09-25 | Keyboard moves and Fill Zones | Ctrl+Option + an arrow moves the focused window to the zone left, right, above or below, on its own display only; at an edge nothing happens, and an untiled window first snaps into the zone under its centre. Carbon hotkeys need no extra permission and are swallowed. "Fill Zones" in the menu puts untiled windows into every display's empty zones, nearest first, leaving extra windows alone. Both go through `snap`, so they behave exactly like a drop. |
 | 2026-09-26 | Split on drop | Holding the split key (Control by default, set in Split Key ▸) as well as the modifier previews the zone under the cursor as top and bottom halves; releasing drops the window into the half under the cursor, and a window already in the zone moves to the other half. The split is only in the working copy: `Arrangement.split` uses its own never-reused ID counter, and a split-created zone collapses into the zone before it once both are empty. Known limitation: a layout change, display reconfiguration or Reset untiles windows in split halves. |
 | 2026-09-27 | Editor polish | Esc and Cmd-W close the editor through the usual Save/Discard/Cancel prompt, which quitting now asks too; the gap is labelled in points; the prompt names what changed (layout, gap or both). A planned warning for hotkeys taken by another app was dropped: a probe showed Carbon can't detect the conflict. |
+| 2026-10-07 | Per-Space arrangements | Resizing on one Space moved a tiled window on another, because every Space shared one arrangement per display (issue 23). Each Space now keeps its own working dividers, split halves and tiled windows per display (`SpaceArrangements`), identified by the private `CGSGetActiveSpace`. Saved layouts stay per display. Layout, gap and display changes apply on every Space; Reset and Fill Zones act on the current one. |
 
 ## Where it stands
 
-- All three spec phases are done and merged to `main`, plus six follow-ups: the ultrawide preset, restoring a window's size on drag-out, spanning a window across zones, resetting a display once its last tiled window leaves, moving windows between zones by keyboard and filling empty zones, and splitting a zone on drop. There are 169 unit tests, all passing.
+- All three spec phases are done and merged to `main`, plus seven follow-ups: the ultrawide preset, restoring a window's size on drag-out, spanning a window across zones, resetting a display once its last tiled window leaves, moving windows between zones by keyboard and filling empty zones, splitting a zone on drop, and keeping each Space's arrangements separate. There are 179 unit tests, all passing.
 - It's installed at `/Applications/Paneful.app`, signed with a self-signed "Paneful Dev" certificate.
 - Settings live in `~/Library/Application Support/Paneful/settings.json`.
 - macOS's own window tiling is turned off (System Settings › Desktop & Dock), because it conflicts with Paneful.
@@ -71,12 +72,14 @@ scripts/make-signing-cert.sh   # one-time: creates the "Paneful Dev" signing ide
   - `Coordinates.swift`: flips between AppKit and Accessibility coordinates.
   - `Span.swift`: the block of zones a span covers, and a zone set's combined rect.
   - `Navigation.swift`, `Fill.swift`: the zone next to a window in a direction, and pairing untiled windows with empty zones.
-  - `Arrangement.swift`: each display's working copy of its layout, plus which windows are tiled where.
+  - `Arrangement.swift`: one display's working copy of its layout on one Space, plus which windows are tiled where.
+  - `SpaceArrangements.swift`: every Space's arrangement per display.
   - `Dividers.swift`, `Edge.swift`, `ResizeTracker.swift`: linked resizing.
   - `LayoutEditing.swift`, `LayoutDraft.swift`, `DividerDrag.swift`: the editor.
   - `Settings.swift`: persistence.
 - `Sources/Paneful/`: the AppKit and SwiftUI app.
   - `WindowAccess.swift`: the only code that talks to the Accessibility API.
+  - `Spaces.swift`: the current Space's ID, through a private window-server call.
   - `TilingController.swift`: owns settings and arrangements, and snaps, refits and follows resizes. It also gives windows dragged out of their zone back their pre-snap size.
   - `DragMonitor.swift`: turns mouse presses into moves or resizes.
   - `HotKeys.swift`: the Ctrl+Option + arrow hotkeys.
@@ -101,7 +104,8 @@ One collaboration quirk: in Adam's terminal, text written just before a multiple
 These are accepted for now, and none are blockers:
 
 - **Things Paneful doesn't notice:**
-  - A window moved to another **Space** is still considered tiled.
+  - A window moved to another **Space** through Mission Control stays tiled on its old Space until it's dropped into a zone somewhere. Until then, a resize on the old Space can still move it.
+  - With **"Displays have separate Spaces"** turned on, the active display's Space is used for every display.
   - A **minimised** window stays untiled after it's restored, so you re-snap it.
   - A tiled window moved to another display *without dragging* (from a Window menu, say) stays tiled, and a later resize can jump its dividers to their limits. A keyboard move checks where the window really is, so it treats such a window as untiled there and never sends it back.
 - **Extra work:**

@@ -18,6 +18,13 @@ Lessons that aren't specific to Paneful's features. Read this before touching wi
 - **Windows from an app that has quit** fail with `.cannotComplete`, not `.invalidUIElement`. Check `NSRunningApplication(processIdentifier:)?.isTerminated`.
 - **`AXUIElement` is `Hashable`** with `CFEqual` semantics, so fresh elements for the same window compare equal. It works as a dictionary key.
 - **An app's `kAXWindowsAttribute` lists only its windows on the current Space.** Windows on other Spaces don't appear (confirmed with a probe script), so enumerating visible windows needs no `CGWindowList` filter.
+- **Accessibility can still set the frame of a window on another Space.** A stored `AXUIElement` keeps working after you switch Spaces, so anything that refits stored windows reaches every Space (issue 23).
+
+## Spaces
+
+- **There's no public API for the current Space.** `CGSGetActiveSpace(CGSMainConnectionID())`, declared with `@_silgen_name`, returns its ID. It links through CoreGraphics (Foundation alone gives undefined symbols), is read-only and works with SIP on.
+- **The ID changes with the Space and stays stable per Space.** A full-screen app gets its own Space and ID.
+- **"Displays have separate Spaces"** is off on Adam's Mac (`defaults read com.apple.spaces spans-displays` prints 1), so every display switches Space together and there's one current Space.
 
 ## Watching the mouse
 
